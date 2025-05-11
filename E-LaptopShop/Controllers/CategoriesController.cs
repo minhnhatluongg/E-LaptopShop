@@ -23,21 +23,21 @@ public class CategoriesController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet]
+    [HttpGet("GetAllCategories")]
     public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetAll()
     {
         var categories = await _mediator.Send(new GetAllCategoriesQuery());
         return Ok(ApiResponse<IEnumerable<CategoryDto>>.SuccessResponse(categories));
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("GetCategoryById/{id}")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(int id)
     {
         var category = await _mediator.Send(new GetCategoryByIdQuery { Id = id });
         return Ok(ApiResponse<CategoryDto>.SuccessResponse(category));
     }
 
-    [HttpPost]
+    [HttpPost("CreateCategory")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Create([FromBody] CreateCategoryCommand command)
     {
         var category = await _mediator.Send(command);
@@ -47,7 +47,7 @@ public class CategoriesController : ControllerBase
             ApiResponse<CategoryDto>.SuccessResponse(category, $"{EntityName} created successfully"));
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("UpdateCategory/{id}")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(int id, [FromBody] UpdateCategoryCommand command)
     {
         command.Id = id;
@@ -55,7 +55,7 @@ public class CategoriesController : ControllerBase
         return Ok(ApiResponse<CategoryDto>.SuccessResponse(category, $"{EntityName} updated successfully"));
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("DeleteCategory/{id}")]
     public async Task<ActionResult<ApiResponse<int>>> Delete(int id)
     {
         var command = new DeleteCategoryCommand { Id = id };
