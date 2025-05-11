@@ -24,21 +24,21 @@ public class ProductsController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet]
+    [HttpGet("GetAllProducts")]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProductDto>>>> GetAll([FromQuery] GetAllProductsQuery query)
     {
         var products = await _mediator.Send(query);
         return Ok(ApiResponse<IEnumerable<ProductDto>>.SuccessResponse(products));
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("GetProductById/{id}")]
     public async Task<ActionResult<ApiResponse<ProductDto>>> GetById(int id)
     {
         var product = await _mediator.Send(new GetProductByIdQuery { Id = id });
         return Ok(ApiResponse<ProductDto>.SuccessResponse(product));
     }
 
-    [HttpPost]
+    [HttpPost("CreateProduct")]
     public async Task<ActionResult<ApiResponse<ProductDto>>> Create([FromBody] CreateProductCommand command)
     {
         var product = await _mediator.Send(command);
@@ -48,7 +48,7 @@ public class ProductsController : ControllerBase
             ApiResponse<ProductDto>.SuccessResponse(product, $"{EntityName} created successfully"));
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("UpdateProduct/{id}")]
     public async Task<ActionResult<ApiResponse<ProductDto>>> Update(int id, [FromBody] UpdateProductCommand command)
     {
         if (id != command.Id)
@@ -60,7 +60,7 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductDto>.SuccessResponse(product, $"{EntityName} updated successfully"));
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("DeleteProduct/{id}")]
     public async Task<ActionResult<ApiResponse<int>>> Delete(int id)
     {
         var command = new DeleteProductCommand { Id = id };
