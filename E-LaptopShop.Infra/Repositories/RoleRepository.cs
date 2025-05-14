@@ -135,9 +135,15 @@ namespace E_LaptopShop.Infra.Repositories
         {
             try
             {
-                return await _context.Roles
-                    .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+               if(id <= 0)
+                    throw new ArgumentException("ID must be greater than zero", nameof(id));
 
+               var role = await _context.Roles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                if (role == null)
+                    throw new KeyNotFoundException($"Role with ID {id} not found");
+                return role;
             }
             catch (Exception ex)
             {
@@ -153,22 +159,32 @@ namespace E_LaptopShop.Infra.Repositories
                 {
                     throw new ArgumentNullException(nameof(role), "Role cannot be null");
                 }
-                var existingRole = _context.Roles.Find(role.Id);
+                if(role.Id <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(role.Id), "ID must be greater than zero");
+                }
+
+                var existingRole = await _context.Roles.FindAsync(role.Id,cancellationToken);
                 if (existingRole == null)
                 {
                     throw new InvalidOperationException($"Role with ID {role.Id} not found");
                 }
-                //Cập nhật tất cả các giá trị thuộc tính
-                //_context.Entry(existingRole).CurrentValues.SetValues(role);
-                //Cập nhật từng thuộc tính
-                existingRole.Name = role.Name;
-                existingRole.IsActive = role.IsActive;
 
-                _context.Roles.Update(existingRole);
-                await _context.SaveChangesAsync(cancellationToken);
+                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    existingRole.Name = role.Name;
+                    existingRole.IsActive = role.IsActive;
 
-                return existingRole;
-
+                    await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                    return existingRole;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw new InvalidOperationException("Error updating role", ex);
+                }
             }
             catch (DbUpdateConcurrencyException ex)
             {

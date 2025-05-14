@@ -22,9 +22,14 @@ public class ProductSpecificationRepository : IProductSpecificationRepository
     {
         try
         {
-            return await _context.ProductSpecifications
-                .Include(p => p.Product)
+            if(id <= 0)
+                throw new ArgumentOutOfRangeException(nameof(id), "ID must be greater than zero");
+            var spec = await _context.ProductSpecifications
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            if (spec == null)
+                throw new KeyNotFoundException($"Product specification with ID {id} not found");
+            return spec;
         }
         catch (Exception ex)
         {

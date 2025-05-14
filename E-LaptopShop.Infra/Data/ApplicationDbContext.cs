@@ -94,20 +94,38 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__ProductI__3214EC078C5F1344");
 
+
+            // Các thuộc tính không cho phép null
+            entity.Property(e => e.ImageUrl).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.FileType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.FileSize).IsRequired();
+            entity.Property(e => e.UploadedAt).IsRequired().HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime");
+            entity.Property(e => e.isActive).IsRequired();
+
+            // Các giá trị mặc định
             entity.Property(e => e.IsMain).HasDefaultValue(false);
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.FileSize).HasDefaultValue(0);
+            entity.Property(e => e.UploadedAt).HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.isActive).HasDefaultValue(true);
 
-            entity.HasOne(d => d.Product).WithMany(p => p.ProductImages).HasConstraintName("FK__ProductIm__Produ__46E78A0C");
-        });
+            // Các thuộc tính có thể null
+            entity.Property(e => e.AltText).HasMaxLength(255);
+            entity.Property(e => e.Title).HasMaxLength(100);
+            entity.Property(e => e.CreatedBy).HasMaxLength(50);
 
-        modelBuilder.Entity<ProductReview>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__ProductR__3214EC075D43DB32");
+            // Quan hệ với bảng Product
+            entity.HasOne(d => d.Product)
+                .WithMany(p => p.ProductImages)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ProductImages_Products");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.ProductReviews).HasConstraintName("FK__ProductRe__Produ__571DF1D5");
-
-            entity.HasOne(d => d.User).WithMany(p => p.ProductReviews).HasConstraintName("FK__ProductRe__UserI__5812160E");
+            // Các index
+            entity.HasIndex(e => e.ProductId, "IX_ProductImages_ProductId");
+            entity.HasIndex(e => new { e.ProductId, e.IsMain }, "IX_ProductImages_ProductId_IsMain");
         });
 
         modelBuilder.Entity<ProductSpecification>(entity =>

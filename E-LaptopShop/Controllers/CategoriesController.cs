@@ -9,6 +9,8 @@ using E_LaptopShop.Application.Features.Categories.Commands.UpdateCategory;
 using E_LaptopShop.Application.Features.Categories.Commands.DeleteCategory;
 using E_LaptopShop.Application.Features.Categories.Queries.GetCategoryById;
 using E_LaptopShop.Application.Features.Categories.Queries.GetAllCategories;
+using E_LaptopShop.Application.Features.Categories.Queries.GetFilterdPagedCategoriesQuery;
+using E_LaptopShop.Application.Common.Pagination;
 
 namespace E_LaptopShop.Controllers;
 
@@ -66,5 +68,13 @@ public class CategoriesController : ControllerBase
             Message = $"{EntityName} deleted successfully",
             Data = result
         });
+    }
+
+    [HttpGet("GetFilteredPagedCategories")]
+    public async Task<ActionResult<ApiResponse<PagedResult<CategoryDto>>>> GetFilteredPagedCategories(
+        [FromQuery] GetFilteredPagedCategoriesQuery query)
+    {
+        var result = await _mediator.Send(query);
+        return Ok(ApiResponse<PagedResult<CategoryDto>>.SuccessResponse(result));
     }
 } 
