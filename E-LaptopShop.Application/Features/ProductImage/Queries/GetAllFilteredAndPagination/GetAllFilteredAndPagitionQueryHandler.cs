@@ -21,32 +21,10 @@ namespace E_LaptopShop.Application.Features.ProductImage.Queries.GetAllFilteredA
             _productImageRepository = productImageRepository;
             _mapper = mapper;
         }
-        public async Task<PagedResult<ProductImageDto>> Handle(GetAllFilteredAndPagitionQuery request, CancellationToken cancellationToken)
+
+        public Task<PagedResult<ProductImageDto>> Handle(GetAllFilteredAndPagitionQuery request, CancellationToken cancellationToken)
         {
-            var (productImages, totalCount) = await _productImageRepository.GetAllFilterAndPagination(
-                request.PageNumber,
-                request.PageSize,
-                request.Id,
-                request.ProductId,
-                request.ImageUrl,
-                request.IsMain,
-                request.FileType,
-                request.FileSize,
-                request.DisplayOrder,
-                request.AltText,
-                request.Title,
-                request.CreatedAt,
-                request.UploadedAt,
-                request.IsActive,
-                request.CreatedBy,
-                cancellationToken
-            );
-            var productImageDtos = _mapper.Map<IEnumerable<ProductImageDto>>(productImages);
-            return new PagedResult<ProductImageDto>(
-                productImageDtos,
-                totalCount,
-                request.PageNumber,
-                request.PageSize);
+            throw new NotImplementedException();
         }
     }
     

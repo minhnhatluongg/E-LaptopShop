@@ -20,23 +20,10 @@ namespace E_LaptopShop.Application.Features.Categories.Queries.GetFilterdPagedCa
             _categoryRepository = categoryRepository;
             _mapper = mapper;
         }
-        public async Task<PagedResult<CategoryDto>> Handle(GetFilteredPagedCategoriesQuery request, CancellationToken cancellationToken)
-        {
-            var (categories, totalCount) = await _categoryRepository.GetAllFilterAndPagination(
-                request.PageNumber,
-                request.PageSize,
-                request.Id,
-                request.Name,
-                request.Description,
-                cancellationToken
-            );
-            var categoryDtos = _mapper.Map<IEnumerable<CategoryDto>>(categories);
 
-            return new PagedResult<CategoryDto>(
-                categoryDtos,
-                totalCount,
-                request.PageNumber,
-                request.PageSize);
+        public Task<PagedResult<CategoryDto>> Handle(GetFilteredPagedCategoriesQuery request, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
         }
     }
 }
