@@ -22,9 +22,16 @@ public class ProductRepository : IProductRepository
     {
         try
         {
-            return await _context.Products
+            if(id <=0 )
+                throw new ArgumentOutOfRangeException(nameof(id), "ID must be greater than zero");
+            var product = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductSpecifications)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            if (product == null)
+                throw new KeyNotFoundException($"Product with ID {id} not found");
+            return product;
         }
         catch (Exception ex)
         {

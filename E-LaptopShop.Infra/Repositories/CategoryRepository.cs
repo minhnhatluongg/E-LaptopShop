@@ -21,9 +21,16 @@ public class CategoryRepository : ICategoryRepository
     {
         try
         {
-            return await _context.Categories
+            if(id <= 0 ) {
+                throw new ArgumentOutOfRangeException(nameof(id), "ID must be greater than zero");
+            }
+            var category = await _context.Categories
                 .Include(c => c.Products)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+            if (category == null)
+                throw new KeyNotFoundException($"Category with ID {id} not found");
+            return category;
         }
         catch (Exception ex)
         {
@@ -99,5 +106,83 @@ public class CategoryRepository : ICategoryRepository
         {
             throw new InvalidOperationException($"Error deleting category with ID {id}", ex);
         }
+    }
+
+    public async Task<IEnumerable<Category>> GetFilteredAsync(
+        int? id = null,
+        string? name = null,
+        string? description = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = _context.Categories.AsQueryable();
+            if (id.HasValue)
+            {
+                query = query.Where(c => c.Id == id.Value);
+            }
+            if (!string.IsNullOrEmpty(name))
+            {
+                var searchName = name.Trim().ToLower();
+                query = query.Where(c => c.Name.ToLower().Contains(searchName));
+            }
+            if (!string.IsNullOrEmpty(description))
+            {
+                var searchDescription = description.Trim().ToLower();
+                query = query.Where(c => c.Description != null && c.Description.ToLower().Contains(searchDescription));
+            }
+
+            return await query 
+                .Include(c => c.Products)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Error filtering categories", ex);
+        }
+    }
+
+    public async Task<(IEnumerable<Category> Items, int totalCount)> GetAllFilterAndPagination(
+        int pageNumber, 
+        int pageSize, 
+        int? id = null, 
+        string? name = null, 
+        string? description = null, 
+        CancellationToken cancellationToken = default)
+    {
+
+        try
+        {
+            var query = _context.Categories.AsQueryable();
+            if (id.HasValue)
+            {
+                query = query.Where(c => c.Id == id.Value);
+            }
+            if (!string.IsNullOrEmpty(name))
+            {
+                var searchName = name.Trim().ToLower();
+                query = query.Where(c => c.Name.ToLower().Contains(searchName));
+            }
+            if (!string.IsNullOrEmpty(description))
+            {
+                var searchDescription = description.Trim().ToLower();
+                query = query.Where(c => c.Description != null && c.Description.ToLower().Contains(searchDescription));
+            }
+            var totalCount = await query.CountAsync(cancellationToken);
+            var items = await query
+                .Include(c => c.Products)
+                .AsNoTracking()
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+            return (items, totalCount);
+
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Error filtering and paginating categories", ex);
+        }
+
     }
 } 

@@ -4,7 +4,7 @@ using E_LaptopShop.Application.Features.ProductSpecifications.Commands.CreatePro
 using E_LaptopShop.Application.Features.ProductSpecifications.Commands.UpdateProductSpecification;
 using E_LaptopShop.Domain.Entities;
 
-namespace E_LaptopShop.Application.Common.Mappings;
+namespace E_LaptopShop.Application.Mappings;
 
 public class ProductSpecificationProfile : Profile
 {

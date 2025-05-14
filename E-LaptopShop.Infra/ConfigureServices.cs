@@ -27,6 +27,7 @@ namespace E_LaptopShop.Infra
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IProductSpecificationRepository, ProductSpecificationRepository>();
+            services.AddScoped<IProductImageRepository, ProductImageRepository>();
             
             return services;
         }
