@@ -9,16 +9,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Infra.Repositories
 {
     public class ProductImageRepository : IProductImageRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ProductImageRepository> _logger;
 
-        public ProductImageRepository(ApplicationDbContext context)
+        public ProductImageRepository(ApplicationDbContext context, ILogger<ProductImageRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
         public async Task<ProductImage> AddImageAsync(ProductImage productImage, CancellationToken cancellationToken)
         {
@@ -119,26 +122,48 @@ namespace E_LaptopShop.Infra.Repositories
         {
             try
             {
-                pageNumber = pageNumber < 1 ? 1 : pageNumber;
-                pageSize = pageSize < 1 ? 10 : pageSize;
+                // Validate input parameters
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageSize < 1) pageSize = 10;
+                if (pageSize > 100) pageSize = 100; // Add maximum page size limit
 
-                var query = _context.ProductImages.AsQueryable();
-                //Check rồi lọc
+                // Build base query with only necessary fields
+                var query = _context.ProductImages
+                    .AsNoTracking()
+                    .Select(pi => new ProductImage
+                    {
+                        Id = pi.Id,
+                        ProductId = pi.ProductId,
+                        ImageUrl = pi.ImageUrl,
+                        IsMain = pi.IsMain,
+                        FileType = pi.FileType,
+                        FileSize = pi.FileSize,
+                        DisplayOrder = pi.DisplayOrder,
+                        AltText = pi.AltText,
+                        Title = pi.Title,
+                        CreatedAt = pi.CreatedAt,
+                        UploadedAt = pi.UploadedAt,
+                        isActive = pi.isActive,
+                        CreatedBy = pi.CreatedBy
+                    });
+
+                // Apply filters
                 query = ApplyFilter(query, filter);
-                //Check tìm kiếm
+
+                // Apply search if search term is provided
                 if (!string.IsNullOrWhiteSpace(searchTerm))
                 {
                     query = ApplySearch(query, searchTerm, searchFields);
                 }
 
-                //Đếm tổng số bản ghi
+                // Get total count before pagination
                 var totalCount = await query.CountAsync(cancellationToken);
 
-                //Sắp xếp
+                // Apply sorting
                 query = ApplySorting(query, sortBy, isAscending);
 
+                // Apply pagination
                 var items = await query
-                    .AsNoTracking()
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync(cancellationToken);
@@ -147,6 +172,7 @@ namespace E_LaptopShop.Infra.Repositories
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving filtered product images with pagination");
                 throw new InvalidOperationException("Error retrieving filtered product images with pagination", ex);
             }
         }

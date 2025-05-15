@@ -11,8 +11,11 @@ namespace E_LaptopShop.Application.Features.ProductImage.Queries.GetAllFilteredA
 {
     public class GetAllFilteredAndPagitionQuery : IRequest<PagedResult<ProductImageDto>>
     {
+        // Pagination
         public int PageNumber { get; init; } = 1;
         public int PageSize { get; init; } = 10;
+
+        // Filtering
         public int? Id { get; init; }
         public int? ProductId { get; init; }
         public string? ImageUrl { get; init; }
@@ -26,5 +29,13 @@ namespace E_LaptopShop.Application.Features.ProductImage.Queries.GetAllFilteredA
         public DateTime? UploadedAt { get; init; }
         public bool? IsActive { get; init; }
         public string? CreatedBy { get; init; }
+
+        // Sorting
+        public string? SortBy { get; init; }
+        public bool IsAscending { get; init; } = true;
+
+        // Searching
+        public string? SearchTerm { get; init; }
+        public string[]? SearchFields { get; init; }
     }
 }
