@@ -12,7 +12,7 @@ public partial class ProductImage
     public int Id { get; set; }
 
     public int ProductId { get; set; }
-
+    public int? SysFileId { get; set; }
     [Required]
     [StringLength(255)]
     public string? ImageUrl { get; set; }
@@ -47,4 +47,8 @@ public partial class ProductImage
     [ForeignKey("ProductId")]
     [InverseProperty("ProductImages")]
     public virtual Product? Product { get; set; }
+
+    [ForeignKey("SysFileId")]
+    [InverseProperty("ProductImages")]
+    public virtual SysFile? SysFile { get; set; }
 }
