@@ -1,6 +1,7 @@
 ﻿using E_LaptopShop.Application.Common.Pagination;
 using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductImage;
+using E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductImageWithSysFile;
 using E_LaptopShop.Application.Features.ProductImage.Commands.DeleteProductImgages;
 using E_LaptopShop.Application.Features.ProductImage.Commands.SetMainImage;
 using E_LaptopShop.Application.Features.ProductImage.Commands.UpdateProductImage;
@@ -9,6 +10,7 @@ using E_LaptopShop.Application.Features.ProductImage.Queries.GetImagesByProductI
 using E_LaptopShop.Application.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace E_LaptopShop.Controllers
 {
@@ -162,6 +164,33 @@ namespace E_LaptopShop.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error occurred while setting main image {id}");
+                return StatusCode(500, ApiResponse<ProductImageDto>.ErrorResponse("An error occurred while processing your request"));
+            }
+        }
+
+        [HttpPost("product/{productId}/images")]
+        public async Task<ActionResult<ApiResponse<ProductImageDto>>> CreateProductImage(
+                int productId,
+                [FromBody] CreateProductImageWithSysFileCommand command)
+        {
+            try
+            {
+                // Đảm bảo productId từ route khớp với command
+                if (productId != command.ProductId)
+                    return BadRequest(ApiResponse<ProductImageDto>.ErrorResponse("Product ID mismatch"));
+
+                // Thiết lập user
+                command.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+
+                var result = await _mediator.Send(command);
+                return CreatedAtAction(
+                    nameof(GetByProductId),
+                    new { productId = result.ProductId },
+                    ApiResponse<ProductImageDto>.SuccessResponse(result, "Product image created successfully"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating product image with SysFile");
                 return StatusCode(500, ApiResponse<ProductImageDto>.ErrorResponse("An error occurred while processing your request"));
             }
         }

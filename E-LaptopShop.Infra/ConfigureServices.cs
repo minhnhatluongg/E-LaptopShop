@@ -30,6 +30,7 @@ namespace E_LaptopShop.Infra
             services.AddScoped<IProductImageRepository, ProductImageRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
+            services.AddScoped<ISysFileRepository, SysFileRepository>();
             return services;
         }
     }

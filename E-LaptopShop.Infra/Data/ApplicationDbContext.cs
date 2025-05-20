@@ -55,6 +55,7 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<SupplierOrderItem> SupplierOrderItems { get; set; }
 
+    public virtual DbSet<SysFile> SysFiles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -147,9 +148,18 @@ public partial class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ProductImages_Products");
 
+            //Quan hệ với bảng SysFile
+            entity.HasOne(d => d.SysFile)
+                .WithMany(p => p.ProductImages)
+                .HasForeignKey(d => d.SysFileId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ProductImages_SysFiles");
+
             // Các index
             entity.HasIndex(e => e.ProductId, "IX_ProductImages_ProductId");
             entity.HasIndex(e => new { e.ProductId, e.IsMain }, "IX_ProductImages_ProductId_IsMain");
+
+
         });
 
         modelBuilder.Entity<ProductSpecification>(entity =>
@@ -342,6 +352,24 @@ public partial class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(d => d.ProductId)
                 .HasConstraintName("FK_SupplierOrderItems_Products");
+        });
+
+        modelBuilder.Entity<SysFile>(entity =>
+        {
+            entity.ToTable("SysFile");
+            entity.HasKey(e => e.Id).HasName("PK__SysFiles__3214EC07");
+
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.FilePath).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.FileUrl).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.FileType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.StorageType).IsRequired().HasMaxLength(100);
+
+            entity.Property(e => e.UploadedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.StorageType).HasDefaultValue("local");
+
+            entity.Property(e => e.UploadedBy).HasMaxLength(50);
         });
     }
 
