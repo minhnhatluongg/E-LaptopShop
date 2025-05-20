@@ -37,6 +37,25 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<UserAddress> UserAddresses { get; set; }
 
+    //Kho - Nhập xuất Sản Phẩm
+
+    public virtual DbSet<ShoppingCart> ShoppingCarts { get; set; }
+
+    public virtual DbSet<ShoppingCartItem> ShoppingCartItems { get; set; }
+
+    public virtual DbSet<Inventory> Inventories { get; set; }
+
+    public virtual DbSet<InventoryHistory> InventoryHistories { get; set; }
+
+    public virtual DbSet<OrderHistory> OrderHistories { get; set; }
+
+    public virtual DbSet<Supplier> Suppliers { get; set; }
+
+    public virtual DbSet<SupplierOrder> SupplierOrders { get; set; }
+
+    public virtual DbSet<SupplierOrderItem> SupplierOrderItems { get; set; }
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -65,8 +84,13 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__OrderIte__3214EC079E5D0449");
 
-            entity.HasOne(d => d.Order).WithMany(p => p.OrderItems).HasConstraintName("FK__OrderItem__Order__5165187F");
+            entity.Property(e => e.CostPrice).HasDefaultValue(0);
+            entity.Property(e => e.DiscountAmount).HasDefaultValue(0);
+            entity.Property(e => e.DiscountPercent).HasDefaultValue(0);
+            entity.Property(e => e.TaxAmount).HasDefaultValue(0);
+            entity.Property(e => e.Status).HasDefaultValue("Pending");
 
+            entity.HasOne(d => d.Order).WithMany(p => p.OrderItems).HasConstraintName("FK__OrderItem__Order__5165187F");
             entity.HasOne(d => d.Product).WithMany(p => p.OrderItems).HasConstraintName("FK__OrderItem__Produ__52593CB8");
         });
 
@@ -145,14 +169,49 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07F0A62389");
 
+            // Các trường bắt buộc
+            entity.Property(e => e.FirstName).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.LastName).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+
+            // Các trường có thể null
+            entity.Property(e => e.PasswordHash).HasMaxLength(255);
+            entity.Property(e => e.Phone).HasMaxLength(20);
+            entity.Property(e => e.AvatarUrl).HasMaxLength(255);
+            entity.Property(e => e.Token).HasMaxLength(255);
+            entity.Property(e => e.RefreshToken).HasMaxLength(100);
+            entity.Property(e => e.VerificationToken).HasMaxLength(100);
+            entity.Property(e => e.Gender).HasMaxLength(50);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            // Các giá trị mặc định
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
-
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.EmailConfirmed).HasDefaultValue(false);
+            entity.Property(e => e.LoginAttempts).HasDefaultValue(0);
+            entity.Property(e => e.IsLocked).HasDefaultValue(false);
 
-
-            entity.HasOne(d => d.Role).WithMany(p => p.Users)
+            // Quan hệ với bảng Role
+            entity.HasOne(d => d.Role)
+                .WithMany(p => p.Users)
+                .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Users__RoleId__3B75D760");
+                .HasConstraintName("FK_Users_Roles");
+
+            // Chỉ mục
+            entity.HasIndex(e => e.Email)
+                .IsUnique()
+                .HasDatabaseName("UQ__Users__A9D10534BCF0AE75");
+
+            entity.HasIndex(e => e.RoleId)
+                .HasDatabaseName("IX_Users_RoleId");
+
+            entity.HasIndex(e => e.IsActive)
+                .HasDatabaseName("IX_Users_IsActive");
+
+            entity.HasIndex(e => e.LastLoginAt)
+                .HasDatabaseName("IX_Users_LastLoginAt");
         });
 
         modelBuilder.Entity<UserAddress>(entity =>
@@ -165,6 +224,125 @@ public partial class ApplicationDbContext : DbContext
         });
 
         OnModelCreatingPartial(modelBuilder);
+
+        modelBuilder.Entity<ShoppingCart>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__ShoppingCarts__3214EC07");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TotalAmount).HasDefaultValue(0);
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ShoppingCarts_Users");
+        });
+
+        modelBuilder.Entity<ShoppingCartItem>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__ShoppingCartItems__3214EC07");
+
+            entity.Property(e => e.Quantity).HasDefaultValue(1);
+            entity.Property(e => e.AddedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.ShoppingCart)
+                .WithMany(p => p.Items)
+                .HasForeignKey(d => d.ShoppingCartId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ShoppingCartItems_ShoppingCarts");
+
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .HasConstraintName("FK_ShoppingCartItems_Products");
+        });
+
+        modelBuilder.Entity<Inventory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Inventories__3214EC07");
+
+            entity.Property(e => e.CurrentStock).HasDefaultValue(0);
+            entity.Property(e => e.MinimumStock).HasDefaultValue(5);
+            entity.Property(e => e.ReorderPoint).HasDefaultValue(10);
+            entity.Property(e => e.AverageCost).HasDefaultValue(0);
+            entity.Property(e => e.LastPurchasePrice).HasDefaultValue(0);
+            entity.Property(e => e.LastUpdated).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Inventories_Products");
+        });
+
+        modelBuilder.Entity<InventoryHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__InventoryHistories__3214EC07");
+
+            entity.Property(e => e.TransactionDate).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Inventory)
+                .WithMany(p => p.HistoryRecords)
+                .HasForeignKey(d => d.InventoryId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_InventoryHistories_Inventories");
+        });
+
+        modelBuilder.Entity<OrderHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__OrderHistories__3214EC07");
+
+            entity.Property(e => e.ChangedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Order)
+                .WithMany(p => p.OrderHistories)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_OrderHistories_Orders");
+        });
+
+        modelBuilder.Entity<Supplier>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Suppliers__3214EC07");
+
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+        });
+
+        modelBuilder.Entity<SupplierOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__SupplierOrders__3214EC07");
+
+            entity.Property(e => e.OrderDate).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.Status).HasDefaultValue("Pending");
+            entity.Property(e => e.TotalAmount).HasDefaultValue(0);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Supplier)
+                .WithMany(p => p.Orders)
+                .HasForeignKey(d => d.SupplierId)
+                .HasConstraintName("FK_SupplierOrders_Suppliers");
+        });
+
+        modelBuilder.Entity<SupplierOrderItem>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__SupplierOrderItems__3214EC07");
+
+            entity.Property(e => e.ReceivedQuantity).HasDefaultValue(0);
+
+            entity.HasOne(d => d.SupplierOrder)
+                .WithMany(p => p.Items)
+                .HasForeignKey(d => d.SupplierOrderId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_SupplierOrderItems_SupplierOrders");
+
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .HasConstraintName("FK_SupplierOrderItems_Products");
+        });
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

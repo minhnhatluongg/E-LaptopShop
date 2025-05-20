@@ -8,8 +8,6 @@ namespace E_LaptopShop.Application.Common.Pagination
 {
     public class PagedResult<T>
     {
-
-
         public IEnumerable<T> Items { get; }
         public int PageNumber { get; }
         public int PageSize { get; }
