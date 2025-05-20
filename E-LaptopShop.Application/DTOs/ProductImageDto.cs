@@ -20,6 +20,7 @@ namespace E_LaptopShop.Application.DTOs
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
         public bool isActive { get; set; }
+        public string CreatedBy { get; set; } = null!;
 
     }
 

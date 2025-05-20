@@ -28,7 +28,8 @@ namespace E_LaptopShop.Infra
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IProductSpecificationRepository, ProductSpecificationRepository>();
             services.AddScoped<IProductImageRepository, ProductImageRepository>();
-            
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IPasswordHasher, PasswordHasher>();
             return services;
         }
     }
