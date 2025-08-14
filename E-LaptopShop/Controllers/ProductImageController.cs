@@ -9,6 +9,7 @@ using E_LaptopShop.Application.Features.ProductImage.Queries.GetAllFilteredAndPa
 using E_LaptopShop.Application.Features.ProductImage.Queries.GetImagesByProductId;
 using E_LaptopShop.Application.Models;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -27,7 +28,12 @@ namespace E_LaptopShop.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// 👑 [ADMIN] Lấy tất cả ảnh sản phẩm với phân trang
+        /// </summary>
         [HttpGet("GetAllProductImageAndPagination")]
+        [Authorize(Roles = "Admin,Manager")]
+        [Tags("👑 Admin")]
         public async Task<ActionResult<ApiResponse<PagedResult<ProductImageDto>>>> GetAll(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10,
@@ -84,7 +90,11 @@ namespace E_LaptopShop.Controllers
             }
         }
 
+        /// <summary>
+        /// 🔓 [PUBLIC] Lấy ảnh theo ProductId - Dành cho catalog
+        /// </summary>
         [HttpGet("GetByProductId")]
+        [Tags("🔓 Public")]
         public async Task<ActionResult<ApiResponse<IEnumerable<ProductImageDto>>>> GetByProductId(int productId)
         {
             try

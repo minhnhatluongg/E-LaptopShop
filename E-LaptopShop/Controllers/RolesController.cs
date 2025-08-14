@@ -6,12 +6,15 @@ using E_LaptopShop.Application.Features.Roles.Queries.GetAllRoles;
 using E_LaptopShop.Application.Features.Roles.Queries.GetRoleById;
 using E_LaptopShop.Application.Models;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_LaptopShop.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")] // 👑 Only Admin can manage roles
+    [Tags("👑 Admin")]
     public class RolesController : ControllerBase
     {
         private readonly IMediator _mediator;

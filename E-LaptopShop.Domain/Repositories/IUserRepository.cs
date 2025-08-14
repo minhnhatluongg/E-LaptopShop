@@ -23,5 +23,9 @@ namespace E_LaptopShop.Domain.Repositories
             int pageNumber, int pageSize, 
             UserFilterParams filterParams, 
             CancellationToken cancellationToken);
+
+        Task IncrementLoginAttemptsAsync(int userId, CancellationToken cancellationToken = default);
+        Task ResetLoginAttemptsAsync(int userId, CancellationToken cancellationToken = default);
+        Task UpdateLastLoginAsync(int userId, CancellationToken cancellationToken = default);
     }
 }

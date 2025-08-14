@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using E_LaptopShop.Application.DTOs;
@@ -25,21 +26,34 @@ public class CategoriesController : ControllerBase
         _mediator = mediator;
     }
 
+    /// <summary>
+    /// 🔓 [PUBLIC] Lấy tất cả danh mục - Dành cho catalog browsing
+    /// </summary>
     [HttpGet("GetAllCategories")]
+    [Tags("🔓 Public")]
     public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetAll()
     {
         var categories = await _mediator.Send(new GetAllCategoriesQuery());
         return Ok(ApiResponse<IEnumerable<CategoryDto>>.SuccessResponse(categories));
     }
 
+    /// <summary>
+    /// 🔓 [PUBLIC] Lấy chi tiết danh mục - Dành cho catalog browsing
+    /// </summary>
     [HttpGet("GetCategoryById/{id}")]
+    [Tags("🔓 Public")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(int id)
     {
         var category = await _mediator.Send(new GetCategoryByIdQuery { Id = id });
         return Ok(ApiResponse<CategoryDto>.SuccessResponse(category));
     }
 
+    /// <summary>
+    /// 👑 [ADMIN] Tạo danh mục mới
+    /// </summary>
     [HttpPost("CreateCategory")]
+    [Authorize(Roles = "Admin,Manager")]
+    [Tags("👑 Admin")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Create([FromBody] CreateCategoryCommand command)
     {
         var category = await _mediator.Send(command);
@@ -49,7 +63,12 @@ public class CategoriesController : ControllerBase
             ApiResponse<CategoryDto>.SuccessResponse(category, $"{EntityName} created successfully"));
     }
 
+    /// <summary>
+    /// 👑 [ADMIN] Cập nhật danh mục
+    /// </summary>
     [HttpPut("UpdateCategory/{id}")]
+    [Authorize(Roles = "Admin,Manager")]
+    [Tags("👑 Admin")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(int id, [FromBody] UpdateCategoryCommand command)
     {
         command.Id = id;
@@ -57,7 +76,12 @@ public class CategoriesController : ControllerBase
         return Ok(ApiResponse<CategoryDto>.SuccessResponse(category, $"{EntityName} updated successfully"));
     }
 
+    /// <summary>
+    /// 👑 [ADMIN] Xóa danh mục
+    /// </summary>
     [HttpDelete("DeleteCategory/{id}")]
+    [Authorize(Roles = "Admin")]
+    [Tags("👑 Admin")]
     public async Task<ActionResult<ApiResponse<int>>> Delete(int id)
     {
         var command = new DeleteCategoryCommand { Id = id };
