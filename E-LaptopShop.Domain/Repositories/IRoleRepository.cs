@@ -11,6 +11,7 @@ namespace E_LaptopShop.Domain.Repositories
     {
         Task<IEnumerable<Role>> GetAllAsync(CancellationToken cancellationToken);
         Task<Role> GetByIdAsync(int id, CancellationToken cancellationToken);
+        Task<Role> GetByNameAsync(string name, CancellationToken cancellationToken);
         Task<Role> AddAsync(Role role, CancellationToken cancellationToken);
         Task<Role> UpdateAsync(Role role, CancellationToken cancellationToken);
         Task<int> DeleteAsync(int id, CancellationToken cancellationToken);

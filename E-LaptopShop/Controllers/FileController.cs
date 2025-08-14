@@ -2,6 +2,7 @@
 using E_LaptopShop.Application.Features.SysFile.Command.UploadChunkCommand;
 using E_LaptopShop.Application.Models;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
@@ -21,7 +22,12 @@ namespace E_LaptopShop.Controllers
             _hostEnvironment = hostEnvironment;
         }
 
+        /// <summary>
+        /// 👤 [CUSTOMER] Upload file chunks - Dành cho customers upload ảnh
+        /// </summary>
         [HttpPost("upload-chunk")]
+        [Authorize] // Customers can upload files
+        [Tags("👤 Customer")]
         public async Task<ActionResult<ApiResponse<ChunkUploadResponseDto>>> UploadChunk(
                 IFormFile chunk, 
                 [FromForm] string fileName,
@@ -60,7 +66,12 @@ namespace E_LaptopShop.Controllers
             }
         }
 
+        /// <summary>
+        /// 👤 [CUSTOMER] Validate uploaded chunks
+        /// </summary>
         [HttpGet("validate-chunk")]
+        [Authorize]
+        [Tags("👤 Customer")]
         public ActionResult<ApiResponse<ChunkValidationResponseDto>> ValidateChunk(string fileName, int chunkNumber)
         {
             try

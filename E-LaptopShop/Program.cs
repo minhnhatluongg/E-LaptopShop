@@ -1,11 +1,16 @@
 using System.Text.Json.Serialization;
 using E_LaptopShop.Application;
 using E_LaptopShop.Application.Common;
+using E_LaptopShop.Application.Models;
+using E_LaptopShop.Application.Services;
 using E_LaptopShop.Helpers;
 using E_LaptopShop.Infra;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,13 +22,111 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
-// Add Swagger
+// Add Swagger with JWT Support
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "E-LaptopShop API", Version = "v1" });
+    
+    // JWT Authorization in Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below."
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // File upload support
+    c.OperationFilter<FileUploadOperationFilter>();
+});
 
 // Add layer dependency
 builder.Services.AddApplicationServices();  // Application layer first
 builder.Services.AddInfraServices(builder.Configuration);  // Infrastructure layer second
+
+// ✨ JWT Configuration - 2025 Best Practices
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.AddScoped<IJwtService, JwtService>();
+
+var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+if (jwtSettings == null)
+{
+    throw new InvalidOperationException("JWT Settings not found in configuration");
+}
+
+// JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.SaveToken = jwtSettings.SaveToken;
+    options.RequireHttpsMetadata = jwtSettings.RequireHttpsMetadata;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = jwtSettings.ValidateIssuerSigningKey,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+        ValidateIssuer = jwtSettings.ValidateIssuer,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidateAudience = jwtSettings.ValidateAudience,
+        ValidAudience = jwtSettings.Audience,
+        ValidateLifetime = jwtSettings.ValidateLifetime,
+        ClockSkew = TimeSpan.FromMinutes(jwtSettings.ClockSkewMinutes),
+        RequireExpirationTime = true
+    };
+
+    // 2025 Enhancement: Enhanced JWT Events
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+            {
+                context.Response.Headers.Add("Token-Expired", "true");
+            }
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            var result = System.Text.Json.JsonSerializer.Serialize(new { message = "You are not authorized" });
+            return context.Response.WriteAsync(result);
+        },
+        OnForbidden = context =>
+        {
+            context.Response.StatusCode = 403;
+            context.Response.ContentType = "application/json";
+            var result = System.Text.Json.JsonSerializer.Serialize(new { message = "You do not have permission" });
+            return context.Response.WriteAsync(result);
+        }
+    };
+});
+
+// Authorization
+builder.Services.AddAuthorization();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -128,6 +231,8 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+// ✨ JWT Middleware Pipeline - ORDER MATTERS!
+app.UseAuthentication();  // 🔐 Must come before UseAuthorization
 app.UseAuthorization();
 
 app.MapControllers();

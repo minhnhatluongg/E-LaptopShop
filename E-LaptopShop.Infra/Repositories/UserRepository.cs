@@ -329,5 +329,20 @@ namespace E_LaptopShop.Infra.Repositories
                 (u.Gender != null && u.Gender.ToLower().Contains(lowerSearchTerm))
             );
         }
+
+        public Task IncrementLoginAttemptsAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ResetLoginAttemptsAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateLastLoginAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

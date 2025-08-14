@@ -151,6 +151,32 @@ namespace E_LaptopShop.Infra.Repositories
             }
         }
 
+        public async Task<Role> GetByNameAsync(string name, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                    throw new ArgumentException("Role name cannot be null or empty", nameof(name));
+
+                var role = await _context.Roles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Name.ToLower() == name.ToLower(), cancellationToken);
+                
+                if (role == null)
+                    throw new KeyNotFoundException($"Role with name '{name}' not found");
+                
+                return role;
+            }
+            catch (KeyNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error retrieving role with name '{name}'", ex);
+            }
+        }
+
         public async Task<Role> UpdateAsync(Role role, CancellationToken cancellationToken)
         {
             try
