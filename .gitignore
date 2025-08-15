@@ -364,3 +364,6 @@ FodyWeavers.xsd
 #Upload folders
 E-LaptopShop/uploads/
 E-LaptopShop/temp-uploads/
+E-LaptopShop/appsettings.Development.json
+E-LaptopShop/appsettings.json
+
