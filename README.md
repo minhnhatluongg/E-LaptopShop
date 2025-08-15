@@ -1010,7 +1010,7 @@ We welcome contributions! Please follow these steps:
 
 ### 💬 **Get Help**
 
-[![Discord](https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/minhnhatluongne)
+[![Discord](https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)]([https://discord.gg/minhnhatluongne](https://discord.gg/UjvShZVC))
 [![GitHub Discussions](https://img.shields.io/badge/GitHub%20Discussions-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/minhnhatluongg/E-LaptopShop/discussions)
 
 ### 📧 **Contact**
@@ -1095,7 +1095,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 **🏆 Quality**: Enterprise Grade  
 **📅 Updated**: 2025  
 
-**Made with ❤️ by the E-LaptopShop Team**
+**Made with ❤️ by the Minh Nhat Luong **
 
 </div>
 
