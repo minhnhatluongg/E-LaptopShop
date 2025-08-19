@@ -26,6 +26,8 @@ public partial class Product
 
     public int? CategoryId { get; set; }
 
+    public bool IsActive { get; set; } = true;
+
     [Column(TypeName = "datetime")]
     public DateTime? CreatedAt { get; set; }
 

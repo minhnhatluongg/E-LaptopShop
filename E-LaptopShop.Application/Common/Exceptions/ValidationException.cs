@@ -1,23 +1,22 @@
-using FluentValidation.Results;
+﻿using FluentValidation.Results;
+using System.Net;
 
 namespace E_LaptopShop.Application.Common.Exceptions
 {
-    public class ValidationException : Exception
+    public class ValidationException : AppException
     {
-        public ValidationException()
-            : base("One or more validation failures have occurred.")
+        public IDictionary<string, string[]> Errors { get; }
+        public ValidationException(string message, object? context = null) : base(HttpStatusCode.BadRequest, "VALIDATION_FAILED", message, context)
         {
             Errors = new Dictionary<string, string[]>();
         }
-
         public ValidationException(IEnumerable<ValidationFailure> failures)
-            : this()
+            : base(HttpStatusCode.BadRequest, "VALIDATION_FAILED", "One or more validation failures have occurred.")
         {
             Errors = failures
                 .GroupBy(e => e.PropertyName, e => e.ErrorMessage)
-                .ToDictionary(failureGroup => failureGroup.Key, failureGroup => failureGroup.ToArray());
+                .Where(g => !string.IsNullOrEmpty(g.Key))
+                .ToDictionary(g => g.Key!, g => g.ToArray());
         }
-
-        public IDictionary<string, string[]> Errors { get; }
     }
-} 
+}
