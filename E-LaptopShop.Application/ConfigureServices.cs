@@ -1,13 +1,8 @@
-﻿    using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using E_LaptopShop.Application.Common.Behaviors;
 using FluentValidation;
 using MediatR;
-using E_LaptopShop.Application.Common.Behaviors;
+using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace E_LaptopShop.Application
 {
@@ -20,7 +15,7 @@ namespace E_LaptopShop.Application
             // Add AutoMapper
             services.AddAutoMapper(assembly);
 
-            // Add MediatR with validation pipeline
+            // Add MediatR with behaviors
             services.AddMediatR(cfg => 
             {
                 cfg.RegisterServicesFromAssembly(assembly);
@@ -28,6 +23,9 @@ namespace E_LaptopShop.Application
 
             // Add FluentValidation
             services.AddValidatorsFromAssembly(assembly);
+
+            // ✨ Add Pipeline Behaviors (thứ tự quan trọng!)
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             return services;

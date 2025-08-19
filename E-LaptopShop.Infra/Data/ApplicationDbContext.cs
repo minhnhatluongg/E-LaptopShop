@@ -111,7 +111,9 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.Discount).HasDefaultValue(0m);
             entity.Property(e => e.InStock).HasDefaultValue(0);
-
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .IsRequired();
             entity.HasOne(d => d.Category).WithMany(p => p.Products).HasConstraintName("FK__Products__Catego__4316F928");
         });
 

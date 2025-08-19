@@ -1,4 +1,4 @@
-using E_LaptopShop.Application.DTOs.Auth;
+﻿using E_LaptopShop.Application.DTOs.Auth;
 using E_LaptopShop.Application.Models;
 using E_LaptopShop.Application.Services;
 using E_LaptopShop.Domain.Repositories;
@@ -28,53 +28,51 @@ namespace E_LaptopShop.Application.Features.Auth.Commands.Login
 
         public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            // 1. Get user by email
+            // 1. Lấy user theo email
             var user = await _userAuthRepository.GetByEmailForAuthAsync(request.Email, cancellationToken);
             if (user == null)
             {
                 throw new UnauthorizedAccessException("Invalid email or password");
             }
-
-            // 2. Check if user is locked
-            var isLocked = await _userAuthRepository.IsUserLockedAsync(user.Id, cancellationToken);
-            if (isLocked)
+            // 2. Kiểm tra trạng thái khóa tài khoản
+            if (await _userAuthRepository.IsUserLockedAsync(user.Id, cancellationToken))
             {
-                throw new UnauthorizedAccessException($"Account is locked due to multiple failed login attempts. Please try again later.");
+                throw new UnauthorizedAccessException("Account is locked due to multiple failed login attempts. Please try again later.");
             }
-
-            // 3. Check if user is active
+            // 3. Kiểm tra trạng thái kích hoạt
             if (!user.IsActive)
             {
                 throw new UnauthorizedAccessException("Account is deactivated");
             }
+            // 4. Kiểm tra mật khẩu
+            var passwordValid = !string.IsNullOrEmpty(user.PasswordHash) &&
+                                _passwordHasher.VerifyHashedPassword(request.Password,user.PasswordHash);
 
-            // 4. Verify password
-            if (string.IsNullOrEmpty(user.PasswordHash) || 
-                !_passwordHasher.VerifyHashedPassword(user.PasswordHash, request.Password))
+            if (!passwordValid)
             {
-                // Increment login attempts
+                // Tăng số lần đăng nhập sai
                 await _userAuthRepository.IncrementLoginAttemptsAsync(user.Id, cancellationToken);
-                
-                // Check if should lock user
-                if (user.LoginAttempts + 1 >= _jwtSettings.MaxFailedAccessAttempts)
+
+                // Khóa nếu vượt giới hạn
+                var failedAttempts = user.LoginAttempts + 1;
+                if (failedAttempts >= _jwtSettings.MaxFailedAccessAttempts)
                 {
                     var lockUntil = DateTime.UtcNow.AddMinutes(_jwtSettings.LockoutDurationMinutes);
                     await _userAuthRepository.LockUserAsync(user.Id, lockUntil, cancellationToken);
                 }
-                
+
                 throw new UnauthorizedAccessException("Invalid email or password");
             }
-
-            // 5. Reset login attempts on successful login
+            // 5. Reset số lần đăng nhập sai khi thành công
             await _userAuthRepository.ResetLoginAttemptsAsync(user.Id, cancellationToken);
 
-            // 6. Update last login
+            // 6. Cập nhật thời gian đăng nhập cuối
             await _userAuthRepository.UpdateLastLoginAsync(user.Id, cancellationToken);
 
-            // 7. Generate tokens
+            // 7. Tạo token
             var tokenResponse = await _jwtService.GenerateTokensAsync(user, cancellationToken);
 
-            // 8. Return auth response
+            // 8. Trả về kết quả
             return new AuthResponseDto
             {
                 AccessToken = tokenResponse.AccessToken,
@@ -93,5 +91,6 @@ namespace E_LaptopShop.Application.Features.Auth.Commands.Login
                 }
             };
         }
+
     }
 }

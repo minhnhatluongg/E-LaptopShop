@@ -1,9 +1,10 @@
-﻿using System.Net;
-using System.Text.Json;
+﻿using E_LaptopShop.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Text.Json;
 
 namespace E_LaptopShop.Application.Common
 {
@@ -35,67 +36,132 @@ namespace E_LaptopShop.Application.Common
             var response = context.Response;
             response.ContentType = "application/json";
 
-            var (statusCode, message) = GetStatusCodeAndMessage(exception);
+            var errorResponse = CreateErrorResponse(exception);
 
-            // Log the error
-            _logger.LogError(exception, "An error occurred: {Message}", exception.Message);
-
-            // Create error response
-            var result = new
+            // Log với appropriate level
+            if (errorResponse.StatusCode >= 500)
             {
-                StatusCode = (int)statusCode,
-                Message = message,
-                DetailedMessage = exception.Message,
-                Timestamp = DateTime.UtcNow
-            };
-
-            response.StatusCode = (int)statusCode;
-            await response.WriteAsync(JsonSerializer.Serialize(result));
-        }
-
-        private (HttpStatusCode statusCode, string message) GetStatusCodeAndMessage(Exception exception)
-        {
-            // Handle database update exceptions
-            if (exception is DbUpdateException dbUpdateEx)
+                _logger.LogError(exception, "Server error: {Message}", exception.Message);
+            }
+            else if (errorResponse.StatusCode >= 400)
             {
-                // Check for foreign key violation
-                if (dbUpdateEx.InnerException?.Message.Contains("foreign key") == true)
-                {
-                    return (HttpStatusCode.BadRequest, "The referenced record does not exist.");
-                }
-
-                // Check for unique constraint violation
-                if (dbUpdateEx.InnerException?.Message.Contains("unique constraint") == true)
-                {
-                    return (HttpStatusCode.Conflict, "A record with this data already exists.");
-                }
-
-                return (HttpStatusCode.BadRequest, "Database update error occurred.");
+                _logger.LogWarning("Client error: {Message}", exception.Message);
             }
 
-            if (exception is DbUpdateConcurrencyException)
-                return (HttpStatusCode.Conflict, "Concurrency conflict occurred.");
+            response.StatusCode = errorResponse.StatusCode;
+            await response.WriteAsync(JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            }));
+        }
 
-            if (exception is KeyNotFoundException)
-                return (HttpStatusCode.NotFound, exception.Message);
+        private ErrorResponse CreateErrorResponse(Exception exception)
+        {
+            return exception switch
+            {
+                // ✅ Handle custom AppException
+                AppException appEx => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = (int)appEx.StatusCode,
+                    ErrorCode = appEx.ErrorCode,
+                    Message = appEx.Message,
+                    Context = appEx.ErrorContext,
+                    Errors = appEx is ValidationException validationEx ? validationEx.Errors : null,
+                    Timestamp = DateTime.UtcNow
+                },
 
-            if (exception is ArgumentNullException)
-                return (HttpStatusCode.BadRequest, exception.Message);
+                // ✅ Handle FluentValidation.ValidationException
+                FluentValidation.ValidationException fluentEx => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 400,
+                    ErrorCode = "VALIDATION_FAILED",
+                    Message = "Validation failed",
+                    Errors = fluentEx.Errors?.GroupBy(e => e.PropertyName, e => e.ErrorMessage)
+                        .Where(g => !string.IsNullOrEmpty(g.Key))
+                        .ToDictionary(g => g.Key!, g => g.ToArray()),
+                    Timestamp = DateTime.UtcNow
+                },
 
-            if (exception is ArgumentException)
-                return (HttpStatusCode.BadRequest, exception.Message);
+                // ✅ Handle standard exceptions
+                UnauthorizedAccessException => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 401,
+                    ErrorCode = "UNAUTHORIZED",
+                    Message = exception.Message,
+                    Timestamp = DateTime.UtcNow
+                },
 
-            // Handle InvalidOperationException with specific message
-            if (exception is InvalidOperationException invalidOpEx &&
-                invalidOpEx.Message.Contains("not found"))
-                return (HttpStatusCode.NotFound, invalidOpEx.Message);
+                KeyNotFoundException => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 404,
+                    ErrorCode = "RESOURCE_NOT_FOUND",
+                    Message = exception.Message,
+                    Timestamp = DateTime.UtcNow
+                },
 
-            // Handle any other exceptions
-            return (HttpStatusCode.InternalServerError, "An unexpected error occurred.");
+                ArgumentNullException or ArgumentException => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 400,
+                    ErrorCode = "INVALID_ARGUMENT",
+                    Message = exception.Message,
+                    Timestamp = DateTime.UtcNow
+                },
+
+                DbUpdateException dbEx when dbEx.InnerException?.Message.Contains("foreign key") == true => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 400,
+                    ErrorCode = "FOREIGN_KEY_VIOLATION",
+                    Message = "The referenced record does not exist.",
+                    Timestamp = DateTime.UtcNow
+                },
+
+                DbUpdateException dbEx when dbEx.InnerException?.Message.Contains("unique constraint") == true => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 409,
+                    ErrorCode = "UNIQUE_CONSTRAINT_VIOLATION",
+                    Message = "A record with this data already exists.",
+                    Timestamp = DateTime.UtcNow
+                },
+
+                DbUpdateException => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 400,
+                    ErrorCode = "DATABASE_ERROR",
+                    Message = "Database update error occurred.",
+                    Timestamp = DateTime.UtcNow
+                },
+                // ✅ Default case
+                _ => new ErrorResponse
+                {
+                    Success = false,
+                    StatusCode = 500,
+                    ErrorCode = "INTERNAL_ERROR",
+                    Message = "An unexpected error occurred.",
+                    Timestamp = DateTime.UtcNow
+                }
+            };
         }
     }
 
-    // Extension method to add the exception handler to the pipeline
+    public class ErrorResponse
+    {
+        public bool Success { get; set; }
+        public int StatusCode { get; set; }
+        public string ErrorCode { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public object? Context { get; set; }
+        public object? Errors { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
     public static class ExceptionHandlerExtensions
     {
         public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder app)
