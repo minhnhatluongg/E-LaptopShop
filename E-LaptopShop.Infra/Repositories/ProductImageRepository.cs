@@ -48,7 +48,7 @@ namespace E_LaptopShop.Infra.Repositories
                 var productImageStatus = _context.ProductImages.FirstOrDefault(x => x.Id == id);
                 if (productImageStatus == null)
                     throw new KeyNotFoundException($"Product image with ID {id} not found.");
-                productImageStatus.isActive = isActive;
+                productImageStatus.IsActive = isActive;
                 await _context.SaveChangesAsync();
                 return productImageStatus;
 
@@ -116,8 +116,6 @@ namespace E_LaptopShop.Infra.Repositories
             ProductImageFilterParams filter,
             string? sortBy = null,
             bool isAscending = true,
-            string? searchTerm = null,
-            string[]? searchFields = null,
             CancellationToken cancellationToken = default)
         {
             try
@@ -143,18 +141,13 @@ namespace E_LaptopShop.Infra.Repositories
                         Title = pi.Title,
                         CreatedAt = pi.CreatedAt,
                         UploadedAt = pi.UploadedAt,
-                        isActive = pi.isActive,
+                        IsActive = pi.IsActive,
                         CreatedBy = pi.CreatedBy
                     });
 
                 // Apply filters
-                query = ApplyFilter(query, filter);
+                //query = ApplyFilter(query, filter);
 
-                // Apply search if search term is provided
-                if (!string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    query = ApplySearch(query, searchTerm, searchFields);
-                }
 
                 // Get total count before pagination
                 var totalCount = await query.CountAsync(cancellationToken);
@@ -194,117 +187,13 @@ namespace E_LaptopShop.Infra.Repositories
                 "displayorder" => isAscending ? query.OrderBy(pi => pi.DisplayOrder) : query.OrderByDescending(pi => pi.DisplayOrder),
                 "createdat" => isAscending ? query.OrderBy(pi => pi.CreatedAt) : query.OrderByDescending(pi => pi.CreatedAt),
                 "uploadedat" => isAscending ? query.OrderBy(pi => pi.UploadedAt) : query.OrderByDescending(pi => pi.UploadedAt),
-                "isactive" => isAscending ? query.OrderBy(pi => pi.isActive) : query.OrderByDescending(pi => pi.isActive),
+                "isactive" => isAscending ? query.OrderBy(pi => pi.IsActive) : query.OrderByDescending(pi => pi.IsActive),
                 "title" => isAscending ? query.OrderBy(pi => pi.Title) : query.OrderByDescending(pi => pi.Title),
                 "alttext" => isAscending ? query.OrderBy(pi => pi.AltText) : query.OrderByDescending(pi => pi.AltText),
                 _ => query.OrderByDescending(pi => pi.CreatedAt) // Mặc định
             };
         }
 
-        private IQueryable<ProductImage> ApplySearch(IQueryable<ProductImage> query, string searchTerm, string[]? searchFields = null)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return query;
-            var searchTermLower = searchTerm.ToLower();
-            if (searchFields != null && searchFields.Length > 0)
-            {
-                // Bắt đầu với predicate False (không có kết quả)
-                var predicate = PredicateBuilder.False<ProductImage>();
-                bool hasValidField = false;
-                // Tìm kiếm trong các trường cụ thể
-                foreach (var field in searchFields)
-                {
-                    switch (field.ToLower())
-                    {
-                        case "imageurl":
-                            predicate = predicate.Or(pi => pi.ImageUrl.ToLower().Contains(searchTermLower));
-                            hasValidField = true;
-                            break;
-                        case "filetype":
-                            predicate = predicate.Or(pi => pi.FileType.ToLower().Contains(searchTermLower));
-                            hasValidField = true;
-                            break;
-                        case "alttext":
-                            predicate = predicate.Or(pi => pi.AltText != null && pi.AltText.ToLower().Contains(searchTermLower));
-                            hasValidField = true;
-                            break;
-                        case "title":
-                            predicate = predicate.Or(pi => pi.Title != null && pi.Title.ToLower().Contains(searchTermLower));
-                            hasValidField = true;
-                            break;
-                        case "createdby":
-                            predicate = predicate.Or(pi => pi.CreatedBy != null && pi.CreatedBy.ToLower().Contains(searchTermLower));
-                            hasValidField = true;
-                            break;
-                    }
-                }
-                // Nếu có ít nhất một trường hợp lệ, áp dụng predicate
-                if (hasValidField)
-                {
-                    return query.Where(predicate);
-                }
-            }
-            else
-            {
-                // Tìm kiếm trong tất cả các trường văn bản
-                // Khi tìm kiếm tất cả, chúng ta có thể sử dụng cách tiếp cận đơn giản hơn
-                return query.Where(pi =>
-                    pi.ImageUrl.ToLower().Contains(searchTermLower) ||
-                    pi.FileType.ToLower().Contains(searchTermLower) ||
-                    (pi.AltText != null && pi.AltText.ToLower().Contains(searchTermLower)) ||
-                    (pi.Title != null && pi.Title.ToLower().Contains(searchTermLower)) ||
-                    (pi.CreatedBy != null && pi.CreatedBy.ToLower().Contains(searchTermLower))
-                );
-            }
-            return query;
-        }
-
-        private IQueryable<ProductImage> ApplyFilter(IQueryable<ProductImage> query, ProductImageFilterParams filter)
-        {
-            if (filter == null)
-                return query;
-
-            if (filter.Id.HasValue)
-                query = query.Where(pi => pi.Id == filter.Id);
-
-            if (filter.ProductId.HasValue)
-                query = query.Where(pi => pi.ProductId == filter.ProductId);
-
-            if (!string.IsNullOrWhiteSpace(filter.ImageUrl))
-                query = query.Where(pi => pi.ImageUrl.Contains(filter.ImageUrl));
-
-            if (filter.IsMain.HasValue)
-                query = query.Where(pi => pi.IsMain == filter.IsMain);
-
-            if (!string.IsNullOrWhiteSpace(filter.FileType))
-                query = query.Where(pi => pi.FileType.Contains(filter.FileType));
-
-            if (filter.FileSize.HasValue)
-                query = query.Where(pi => pi.FileSize == filter.FileSize);
-
-            if (filter.DisplayOrder.HasValue)
-                query = query.Where(pi => pi.DisplayOrder == filter.DisplayOrder);
-
-            if (!string.IsNullOrWhiteSpace(filter.AltText))
-                query = query.Where(pi => pi.AltText != null && pi.AltText.Contains(filter.AltText));
-
-            if (!string.IsNullOrWhiteSpace(filter.Title))
-                query = query.Where(pi => pi.Title != null && pi.Title.Contains(filter.Title));
-
-            if (filter.CreatedAt.HasValue)
-                query = query.Where(pi => pi.CreatedAt.Date == filter.CreatedAt.Value.Date);
-
-            //if (filter.UploadedAt.HasValue)
-            //    query = query.Where(pi => pi.UploadedAt.HasValue && pi.UploadedAt.Value.Date == filter.UploadedAt.Value.Date);
-
-            if (filter.IsActive.HasValue)
-                query = query.Where(pi => pi.isActive == filter.IsActive);
-
-            if (!string.IsNullOrWhiteSpace(filter.CreatedBy))
-                query = query.Where(pi => pi.CreatedBy != null && pi.CreatedBy.Contains(filter.CreatedBy));
-
-            return query;
-        }
 
         public async Task<ProductImage> GetByIdAsync(int id, CancellationToken cancellationToken)
         {
@@ -331,7 +220,7 @@ namespace E_LaptopShop.Infra.Repositories
             try
             {
                 var query = _context.ProductImages.AsQueryable();
-                query = ApplyFilter(query, filter);
+                //query = ApplyFilter(query, filter);
                 return await query
                     .AsNoTracking()
                     .ToListAsync(cancellationToken);
@@ -501,6 +390,21 @@ namespace E_LaptopShop.Infra.Repositories
             catch (Exception ex)
             {
                 throw new InvalidOperationException("Error updating product image", ex);
+            }
+        }
+
+        public IQueryable<ProductImage> GetFilteredQueryable(ProductImageFilterParams filters)
+        {
+            try
+            {
+                var q = _context.ProductImages.AsQueryable()
+                        .Include(q => q.Product)
+                        .Include(q => q.SysFile);
+                return q;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Error building filtered queryable for product images", ex);
             }
         }
     }

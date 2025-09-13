@@ -5,9 +5,9 @@ namespace E_LaptopShop.Application.Models;
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
-    public string Message { get; set; }
-    public T Data { get; set; }
-    public IDictionary<string, string[]> Errors { get; set; }
+    public string? Message { get; set; }
+    public T? Data { get; set; }
+    public IDictionary<string, string[]>? Errors { get; set; }
 
     public static ApiResponse<T> SuccessResponse(T data, string message = null)
     {
@@ -19,7 +19,7 @@ public class ApiResponse<T>
         };
     }
 
-    public static ApiResponse<T> ErrorResponse(string message, IDictionary<string, string[]> errors = null)
+    public static ApiResponse<T> ErrorResponse(string message, IDictionary<string, string[]>? errors = null)
     {
         return new ApiResponse<T>
         {

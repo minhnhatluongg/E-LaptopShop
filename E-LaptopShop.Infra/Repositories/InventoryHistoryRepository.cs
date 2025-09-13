@@ -15,7 +15,12 @@ namespace E_LaptopShop.Infra.Repositories
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<InventoryHistoryRepository> _logger;
-        
+
+        public InventoryHistoryRepository(ApplicationDbContext context, ILogger<InventoryHistoryRepository> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         public async Task<InventoryHistory> AddAsync(InventoryHistory inventoryHistory)
         {
@@ -185,6 +190,75 @@ namespace E_LaptopShop.Infra.Repositories
                 _logger.LogError(ex, "Error retrieving inventory history by transaction type {TransactionType}", transactionType);
                 throw new InvalidOperationException("An error occurred while retrieving inventory history by transaction type.", ex);
             }
+        }
+
+
+        public IQueryable<InventoryHistory> GetQueryable()
+        {
+            return _context.InventoryHistories
+                .Include(h => h.Inventory)
+                    .ThenInclude(i => i.Product)
+                .AsQueryable();
+        }
+
+        public IQueryable<InventoryHistory> GetFilteredQueryable(int? inventoryId = null, int? productId = null, string? transactionType = null, DateTime? fromDate = null, DateTime? toDate = null, string? createdBy = null, string? referenceType = null, int? referenceId = null, decimal? minValue = null, decimal? maxValue = null, int? minQuantity = null, int? maxQuantity = null, int? categoryId = null, string? productName = null, string? location = null, bool? hasNotes = null)
+        {
+            var query = GetQueryable(); // Bắt đầu với base queryable
+
+            // ✨ Apply EXACT FILTERS tại DB level
+            if (inventoryId.HasValue)
+                query = query.Where(h => h.InventoryId == inventoryId.Value);
+
+            if (productId.HasValue)
+                query = query.Where(h => h.Inventory.ProductId == productId.Value);
+
+            if (!string.IsNullOrWhiteSpace(transactionType))
+                query = query.Where(h => h.TransactionType == transactionType);
+
+            if (fromDate.HasValue)
+                query = query.Where(h => h.TransactionDate >= fromDate.Value);
+
+            if (toDate.HasValue)
+                query = query.Where(h => h.TransactionDate <= toDate.Value);
+
+            if (!string.IsNullOrWhiteSpace(createdBy))
+                query = query.Where(h => h.CreatedBy == createdBy);
+
+            if (!string.IsNullOrWhiteSpace(referenceType))
+                query = query.Where(h => h.ReferenceType == referenceType);
+
+            if (referenceId.HasValue)
+                query = query.Where(h => h.ReferenceId == referenceId.Value);
+
+            if (minQuantity.HasValue)
+                query = query.Where(h => h.Quantity >= minQuantity.Value);
+
+            if (maxQuantity.HasValue)
+                query = query.Where(h => h.Quantity <= maxQuantity.Value);
+
+            // ✨ Calculated fields filters
+            if (minValue.HasValue)
+                query = query.Where(h => (h.Quantity * h.UnitCost) >= minValue.Value);
+
+            if (maxValue.HasValue)
+                query = query.Where(h => (h.Quantity * h.UnitCost) <= maxValue.Value);
+
+            // ✨ Related entity filters
+            if (categoryId.HasValue)
+                query = query.Where(h => h.Inventory.Product.CategoryId == categoryId.Value);
+
+            if (!string.IsNullOrWhiteSpace(productName))
+                query = query.Where(h => h.Inventory.Product.Name.Contains(productName));
+
+            if (!string.IsNullOrWhiteSpace(location))
+                query = query.Where(h => h.Inventory.Location == location);
+
+            if (hasNotes.HasValue)
+                query = hasNotes.Value
+                    ? query.Where(h => h.Notes != null && h.Notes.Length > 0)
+                    : query.Where(h => h.Notes == null || h.Notes.Length == 0);
+
+            return query;
         }
 
         public async Task<decimal> GetTotalValueByTransactionTypeAsync(InventoryTransactionType transactionType, DateTime? fromDate, DateTime? toDate)

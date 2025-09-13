@@ -185,4 +185,47 @@ public class CategoryRepository : ICategoryRepository
         }
 
     }
-} 
+
+    public IQueryable<Category> GetFilteredQueryable(
+    int? id = null,
+    string? nameExact = null,
+    string? descriptionExact = null,
+    bool includeProducts = false)
+    {
+        var q = _context.Categories
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (id.HasValue)
+            q = q.Where(c => c.Id == id.Value);
+
+        if (!string.IsNullOrWhiteSpace(nameExact))
+            q = q.Where(c => c.Name == nameExact.Trim());
+
+        if (!string.IsNullOrWhiteSpace(descriptionExact))
+            q = q.Where(c => c.Description == descriptionExact.Trim());
+
+        if (includeProducts)
+            q = q.Include(c => c.Products).AsSplitQuery();
+
+        return q;
+    }
+
+    public IQueryable<Category> GetFilteredQueryable(int? id = null, string? name = null, string? description = null, CancellationToken cancellationToken = default)
+    {
+        var q = _context.Categories
+            .Include(c => c.Products).AsSplitQuery()
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (id.HasValue)
+            q = q.Where(c => c.Id == id.Value);
+
+        if (!string.IsNullOrWhiteSpace(name))
+            q = q.Where(c => c.Name == name.Trim());
+
+        if (!string.IsNullOrWhiteSpace(description))
+            q = q.Where(c => c.Description == description.Trim());
+        return q;
+    }
+}

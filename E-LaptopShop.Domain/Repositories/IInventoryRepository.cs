@@ -19,6 +19,18 @@ namespace E_LaptopShop.Domain.Repositories
         Task<Inventory> UpdateAsync(Inventory inventory);
         Task<bool> DeleteAsync(int id);
 
+        IQueryable<Inventory> GetQueryable();
+
+        IQueryable<Inventory> GetFilteredQueryable(int? id = null,
+            int? productId = null,
+            int? currentStock = null,
+            int? minimumStock = null,
+            int? reorderPoint = null,
+            decimal? averageCost = null,
+            decimal? lastPurchasePrice = null,
+            DateTime? lastUpdated = null,
+            string? location = null,
+            InventoryStatus? status = null); 
         //Business Logic
 
         Task<bool> UpdateStockAsync(int productId, int quantity, InventoryTransactionType transactionType);

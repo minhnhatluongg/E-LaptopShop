@@ -7,6 +7,7 @@ using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Repositories;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Application.Features.Products.Queries.GetProducts
@@ -27,43 +28,48 @@ namespace E_LaptopShop.Application.Features.Products.Queries.GetProducts
 
         public async Task<PagedResult<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
         {
-            return await ProcessQuery(request, cancellationToken);
+            return await ProcessQueryOptimized(request, cancellationToken);
         }
 
-        protected override async Task<IEnumerable<Product>> GetFilteredEntities(GetProductsQuery request, CancellationToken cancellationToken)
+        protected override IQueryable<Product> ApplyDatabaseSearch(IQueryable<Product> queryable, SearchOptions search)
         {
-            var products = await _productRepository.GetFilteredAsync(
+            if(!search.HasSearch) return queryable;
+            var searchTerm = search.SearchTerm!;
+            return queryable.Where(p =>
+                EF.Functions.Like(p.Name, $"%{searchTerm}%") ||
+                EF.Functions.Like(p.Description ?? "", $"%{searchTerm}%") ||
+                EF.Functions.Like(p.Category.Name ?? "", $"%{searchTerm}%") ||
+                p.ProductSpecifications.Any(spec =>
+                    EF.Functions.Like(spec.CPU ?? "", $"%{searchTerm}%") ||
+                    EF.Functions.Like(spec.RAM ?? "", $"%{searchTerm}%"))
+            );
+        }
+
+        protected override IQueryable<Product> ApplyDatabaseSorting(IQueryable<Product> queryable, SortingOptions sort)
+        {
+            return sort?.HasSorting.ToString().ToLowerInvariant() switch
+            {
+                "name" => sort.IsAscending
+                    ? queryable.OrderBy(p => p.Name)
+                    : queryable.OrderByDescending(p => p.Name),
+                "price" => sort.IsAscending
+                    ? queryable.OrderBy(p => p.Price)
+                    : queryable.OrderByDescending(p => p.Price),
+                "createdat" => sort.IsAscending
+                    ? queryable.OrderBy(p => p.CreatedAt)
+                    : queryable.OrderByDescending(p => p.CreatedAt),
+                _ => queryable 
+            };
+        }
+
+        protected override Task<IQueryable<Product>> GetFilteredQueryable(GetProductsQuery request, CancellationToken cancellationToken)
+        {
+            var q = _productRepository.GetFilteredQueryable(
                 request.CategoryId,
                 request.MinPrice,
                 request.MaxPrice,
-                request.InStock,
-                cancellationToken);
-
-            if (request.IsActive.HasValue)
-            {
-                products = products.Where(p => p.IsActive == request.IsActive.Value);
-            }
-
-            return products;
-        }
-
-        protected override IEnumerable<Product> ApplySearch(IEnumerable<Product> entities, SearchOptions search)
-        {
-            // Default search trong Name, Description
-            return SearchHelper.ApplyGenericSearch(entities, search, new[] { "Name", "Description" });
-        }
-
-        protected override IEnumerable<Product> ApplySorting(IEnumerable<Product> entities, SortingOptions sort)
-        {
-            var sortMappings = new Dictionary<string, Func<Product, object>>
-            {
-                ["name"] = p => p.Name,
-                ["price"] = p => p.Price,
-                ["createdat"] = p => p.CreatedAt,
-                ["categoryname"] = p => p.Category?.Name ?? ""
-            };
-
-            return SortHelper.ApplyCustomSorting(entities, sort, sortMappings);
+                request.InStock);
+            return Task.FromResult(q);
         }
     }
 }

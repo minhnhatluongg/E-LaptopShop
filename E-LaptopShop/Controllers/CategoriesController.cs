@@ -31,10 +31,12 @@ public class CategoriesController : ControllerBase
     /// </summary>
     [HttpGet("GetAllCategories")]
     [Tags("🔓 Public")]
-    public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetAll()
+    public async Task<ActionResult<ApiResponse<PagedResult<CategoryDto>>>> GetAll(
+        [FromQuery] GetAllCategoriesQuery request,
+        CancellationToken ct)
     {
-        var categories = await _mediator.Send(new GetAllCategoriesQuery());
-        return Ok(ApiResponse<IEnumerable<CategoryDto>>.SuccessResponse(categories));
+        var result = await _mediator.Send(request, ct);
+        return Ok(ApiResponse<PagedResult<CategoryDto>>.SuccessResponse(result));
     }
 
     /// <summary>

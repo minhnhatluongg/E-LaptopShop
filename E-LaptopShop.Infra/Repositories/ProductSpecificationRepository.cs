@@ -22,7 +22,7 @@ public class ProductSpecificationRepository : IProductSpecificationRepository
     {
         try
         {
-            if(id <= 0)
+            if (id <= 0)
                 throw new ArgumentOutOfRangeException(nameof(id), "ID must be greater than zero");
             var spec = await _context.ProductSpecifications
                 .AsNoTracking()

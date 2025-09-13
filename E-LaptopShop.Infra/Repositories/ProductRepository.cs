@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -133,5 +133,31 @@ public class ProductRepository : IProductRepository
         {
             throw new InvalidOperationException($"Error deleting product with ID {id}", ex);
         }
+    }
+
+    public IQueryable<Product> GetFilteredQueryable(int? categoryId = null, decimal? minPrice = null, decimal? maxPrice = null, bool? inStock = null)
+    {
+        var q = _context.Products.AsQueryable();
+        q = q.Include(p => p.Category)
+            .Include(p => p.ProductImages)
+             .Include(p => p.ProductSpecifications)
+             .AsSplitQuery();
+        // Đổi min/max nếu người dùng nhập ngược
+        if (minPrice.HasValue && maxPrice.HasValue && minPrice > maxPrice)
+            (minPrice, maxPrice) = (maxPrice, minPrice);
+
+        if (categoryId.HasValue)
+            q = q.Where(p => p.CategoryId == categoryId.Value);
+
+        if (minPrice.HasValue)
+            q = q.Where(p => p.Price >= minPrice.Value);
+
+        if (maxPrice.HasValue)
+            q = q.Where(p => p.Price <= maxPrice.Value);
+
+        if (inStock.HasValue)
+            q = inStock.Value ? q.Where(p => p.InStock > 0)
+                              : q.Where(p => p.InStock <= 0);
+        return q.AsNoTracking();
     }
 } 

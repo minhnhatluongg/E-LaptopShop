@@ -43,7 +43,7 @@ namespace E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductI
                 Title = request.Title,
                 CreatedAt = DateTime.Now,
                 UploadedAt = DateTime.Now,
-                isActive = true,
+                IsActive = true,
                 CreatedBy = request.CreatedBy
             };
 

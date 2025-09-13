@@ -27,7 +27,7 @@ namespace E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductI
             
             productImage.CreatedAt = DateTime.Now;
             productImage.UploadedAt = DateTime.Now;
-            productImage.isActive = true;
+            productImage.IsActive = true;
             
             var createdProductImage = await _productImageRepository.AddImageAsync(productImage, cancellationToken);
             return _mapper.Map<ProductImageDto>(createdProductImage);

@@ -2,6 +2,7 @@
 {
     public enum InventoryStatus
     {
+        Active = 0,        // Trạng thái hoạt động
         InStock = 1,       // Còn hàng
         LowStock = 2,      // Sắp hết
         OutOfStock = 3,    // Hết hàng

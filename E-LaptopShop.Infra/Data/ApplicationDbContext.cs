@@ -107,8 +107,11 @@ public partial class ApplicationDbContext : DbContext
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Products__3214EC078E5484EF");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(p => p.Price).HasColumnType("decimal(18,2)");
+            entity.Property(p => p.Discount).HasColumnType("decimal(5,2)");
+            entity.Property(p => p.CreatedAt)
+                     .HasColumnType("datetime")
+                     .HasDefaultValueSql("GETUTCDATE()");
             entity.Property(e => e.Discount).HasDefaultValue(0m);
             entity.Property(e => e.InStock).HasDefaultValue(0);
             entity.Property(e => e.IsActive)
@@ -128,7 +131,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.FileSize).IsRequired();
             entity.Property(e => e.UploadedAt).IsRequired().HasColumnType("datetime");
             entity.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime");
-            entity.Property(e => e.isActive).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
 
             // Các giá trị mặc định
             entity.Property(e => e.IsMain).HasDefaultValue(false);
@@ -136,7 +139,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.FileSize).HasDefaultValue(0);
             entity.Property(e => e.UploadedAt).HasDefaultValueSql("GETDATE()");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
-            entity.Property(e => e.isActive).HasDefaultValue(true);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
 
             // Các thuộc tính có thể null
             entity.Property(e => e.AltText).HasMaxLength(255);
@@ -228,8 +231,12 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<UserAddress>(entity =>
         {
+            entity
+            .HasIndex(x => new { x.UserId, x.IsDefault })
+            .HasFilter("[IsDefault] = 1") // chỉ unique khi IsDefault = 1
+            .IsUnique();
             entity.HasKey(e => e.Id).HasName("PK__UserAddr__3214EC07499E7131");
-
+            
             entity.Property(e => e.IsDefault).HasDefaultValue(false);
 
             entity.HasOne(d => d.User).WithMany(p => p.UserAddresses).HasConstraintName("FK__UserAddre__UserI__5BE2A6F2");

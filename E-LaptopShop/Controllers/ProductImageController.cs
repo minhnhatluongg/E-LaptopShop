@@ -31,61 +31,20 @@ namespace E_LaptopShop.Controllers
         /// <summary>
         /// 👑 [ADMIN] Lấy tất cả ảnh sản phẩm với phân trang
         /// </summary>
-        [HttpGet("GetAllProductImageAndPagination")]
+        [HttpGet("GetAllProductImage")]
         [Authorize(Roles = "Admin,Manager")]
         [Tags("👑 Admin")]
-        public async Task<ActionResult<ApiResponse<PagedResult<ProductImageDto>>>> GetAll(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] int? id = null,
-            [FromQuery] int? productId = null,
-            [FromQuery] string? imageUrl = null,
-            [FromQuery] bool? isMain = null,
-            [FromQuery] string? fileType = null,
-            [FromQuery] long? fileSize = null,
-            [FromQuery] int? displayOrder = null,
-            [FromQuery] string? altText = null,
-            [FromQuery] string? title = null,
-            [FromQuery] DateTime? createdAt = null,
-            [FromQuery] DateTime? uploadedAt = null,
-            [FromQuery] bool? isActive = null,
-            [FromQuery] string? createdBy = null,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] bool isAscending = true,
-            [FromQuery] string? searchTerm = null,
-            [FromQuery] string[]? searchFields = null)
+        public async Task<ActionResult<ApiResponse<PagedResult<ProductImageDto>>>> GetAllProductImageAndPagination(
+            [FromQuery] GetAllProductImageQuery query)
         {
             try
             {
-                var query = new GetAllFilteredAndPagitionQuery
-                {
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    Id = id,
-                    ProductId = productId,
-                    ImageUrl = imageUrl,
-                    IsMain = isMain,
-                    FileType = fileType,
-                    FileSize = fileSize,
-                    DisplayOrder = displayOrder,
-                    AltText = altText,
-                    Title = title,
-                    CreatedAt = createdAt,
-                    UploadedAt = uploadedAt,
-                    IsActive = isActive,
-                    CreatedBy = createdBy,
-                    SortBy = sortBy,
-                    IsAscending = isAscending,
-                    SearchTerm = searchTerm,
-                    SearchFields = searchFields
-                };
-
                 var result = await _mediator.Send(query);
                 return Ok(ApiResponse<PagedResult<ProductImageDto>>.SuccessResponse(result));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while getting all product images");
+                _logger.LogError(ex, "Error occurred while getting paginated product images");
                 return StatusCode(500, ApiResponse<PagedResult<ProductImageDto>>.ErrorResponse("An error occurred while processing your request"));
             }
         }

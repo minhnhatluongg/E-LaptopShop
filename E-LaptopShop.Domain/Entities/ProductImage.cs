@@ -39,7 +39,7 @@ public partial class ProductImage
     [Column(TypeName = "datetime")]
     public DateTime UploadedAt { get; set; } = DateTime.Now;
 
-    public bool isActive { get; set; } = true;
+    public bool IsActive { get; set; } = true;
 
     [StringLength(50)]
     public string? CreatedBy { get; set; }
