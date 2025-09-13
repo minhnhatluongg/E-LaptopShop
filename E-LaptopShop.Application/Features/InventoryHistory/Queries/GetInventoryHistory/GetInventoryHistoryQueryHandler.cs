@@ -7,12 +7,13 @@ using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Domain.Enums;
 using E_LaptopShop.Domain.Repositories;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using InventoryHistoryEntity = E_LaptopShop.Domain.Entities.InventoryHistory;
 
 namespace E_LaptopShop.Application.Features.InventoryHistory.Queries.GetInventoryHistory
 {
-    public class GetInventoryHistoryQueryHandler : 
+    public class GetInventoryHistoryQueryHandler :
         BasePagedQueryHandler<InventoryHistoryEntity, InventoryHistoryDto, GetInventoryHistoryQuery>,
         IRequestHandler<GetInventoryHistoryQuery, PagedResult<InventoryHistoryDto>>
     {
@@ -28,96 +29,53 @@ namespace E_LaptopShop.Application.Features.InventoryHistory.Queries.GetInventor
 
         public async Task<PagedResult<InventoryHistoryDto>> Handle(GetInventoryHistoryQuery request, CancellationToken cancellationToken)
         {
-            return await ProcessQuery(request, cancellationToken);
+            return await ProcessQueryOptimized(request, cancellationToken);
         }
 
-        // ✨ Implement abstract methods
-        protected override async Task<IEnumerable<InventoryHistoryEntity>> GetFilteredEntities(GetInventoryHistoryQuery request, CancellationToken cancellationToken)
+        protected override IQueryable<InventoryHistoryEntity> ApplyDatabaseSearch(IQueryable<InventoryHistoryEntity> queryable, SearchOptions search)
         {
-            // Priority-based filtering (giữ logic cũ)
-            if (request.ProductId.HasValue)
-            {
-                return await _historyRepository.GetTransactionHistoryAsync(
-                    request.ProductId.Value, request.FromDate, request.ToDate);
-            }
-            else if (request.InventoryId.HasValue)
-            {
-                var histories = await _historyRepository.GetByInventoryIdAsync(request.InventoryId.Value);
-                return ApplyDateRangeFilter(histories, request.FromDate, request.ToDate);
-            }
-            else if (!string.IsNullOrEmpty(request.TransactionType))
-            {
-                if (Enum.TryParse<InventoryTransactionType>(request.TransactionType, out var transactionType))
-                {
-                    var histories = await _historyRepository.GetByTransactionTypeAsync(transactionType);
-                    return ApplyDateRangeFilter(histories, request.FromDate, request.ToDate);
-                }
-                return new List<InventoryHistoryEntity>();
-            }
-            else if (request.FromDate.HasValue || request.ToDate.HasValue)
-            {
-                return await _historyRepository.GetByDateRangeAsync(
-                    request.FromDate ?? DateTime.MinValue,
-                    request.ToDate ?? DateTime.MaxValue);
-            }
-            else if (!string.IsNullOrEmpty(request.ReferenceType) && request.ReferenceId.HasValue)
-            {
-                return await _historyRepository.GetByReferenceAsync(request.ReferenceType, request.ReferenceId.Value);
-            }
+            if (!search.HasSearch) return queryable;
+            var searchTerm = search.SearchTerm!;
+            return queryable.Where(h =>
+                // Search trong TransactionType (string property)
+                EF.Functions.Like(h.TransactionType, $"%{searchTerm}%") ||
 
-            return await _historyRepository.GetAllAsync();
+                // Search trong Notes (nếu có)
+                (h.Notes != null && EF.Functions.Like(h.Notes, $"%{searchTerm}%")) ||
+
+                // Search trong CreatedBy (nếu có)  
+                (h.CreatedBy != null && EF.Functions.Like(h.CreatedBy, $"%{searchTerm}%")) ||
+
+                // Search trong Product Name (qua Inventory navigation)
+                EF.Functions.Like(h.Inventory.Product.Name, $"%{searchTerm}%") ||
+                // Search trong ReferenceType (nếu có)
+                (h.ReferenceType != null && EF.Functions.Like(h.ReferenceType, $"%{searchTerm}%"))
+             );
         }
 
-        protected override IEnumerable<InventoryHistoryEntity> ApplySearch(IEnumerable<InventoryHistoryEntity> entities, SearchOptions search)
+        protected override IQueryable<InventoryHistoryEntity> ApplyDatabaseSorting(IQueryable<InventoryHistoryEntity> queryable, SortingOptions sort)
         {
-            // ✨ Sử dụng SearchHelper generic với custom fields
-            var customSearchFields = new[] { "TransactionType", "Notes", "CreatedBy", "ReferenceType" };
-            
-            var searchResult = SearchHelper.ApplyGenericSearch(entities, search, customSearchFields);
-
-            // ✨ Custom search cho navigation properties
-            if (search.HasSearch && search.SearchFields?.Contains("ProductName") == true)
+            return sort.SortBy?.ToLowerInvariant() switch
             {
-                var searchTerm = search.SearchTerm!.ToLower();
-                searchResult = searchResult.Where(h => 
-                    h.Inventory?.Product?.Name?.ToLower().Contains(searchTerm) == true);
-            }
-
-            return searchResult;
-        }
-
-        protected override IEnumerable<InventoryHistoryEntity> ApplySorting(IEnumerable<InventoryHistoryEntity> entities, SortingOptions sort)
-        {
-            // ✨ Custom sort mappings cho calculated fields và navigation properties
-            var sortMappings = new Dictionary<string, Func<InventoryHistoryEntity, object>>
-            {
-                ["transactiondate"] = h => h.TransactionDate,
-                ["transactiontype"] = h => h.TransactionType ?? "",
-                ["quantity"] = h => h.Quantity,
-                ["unitcost"] = h => h.UnitCost,
-                ["totalvalue"] = h => h.Quantity * h.UnitCost,
-                ["productname"] = h => h.Inventory?.Product?.Name ?? "",
-                ["createdby"] = h => h.CreatedBy ?? ""
+                "transactiontype" => sort.IsAscending
+                    ? queryable.OrderBy(h => h.TransactionType)
+                    : queryable.OrderByDescending(h => h.TransactionType),
+                "id" => sort.IsAscending
+                    ? queryable.OrderBy(h => h.Id)
+                    : queryable.OrderByDescending(h => h.Id),
+                _ => queryable // Dùng mặc định (Id desc)
             };
-
-            return SortHelper.ApplyCustomSorting(entities, sort, sortMappings);
         }
 
-        protected override IEnumerable<InventoryHistoryEntity> ApplyDefaultSorting(IEnumerable<InventoryHistoryEntity> entities)
+        protected override Task<IQueryable<InventoryHistoryEntity>> GetFilteredQueryable(GetInventoryHistoryQuery request, CancellationToken cancellationToken)
         {
-            return entities.OrderByDescending(h => h.TransactionDate);
-        }
-
-        // Helper methods
-        private IEnumerable<InventoryHistoryEntity> ApplyDateRangeFilter(IEnumerable<InventoryHistoryEntity> histories, DateTime? fromDate, DateTime? toDate)
-        {
-            if (fromDate.HasValue)
-                histories = histories.Where(h => h.TransactionDate >= fromDate.Value);
-
-            if (toDate.HasValue)
-                histories = histories.Where(h => h.TransactionDate <= toDate.Value);
-
-            return histories;
+            var q = _historyRepository.GetFilteredQueryable(
+                inventoryId: request.InventoryId,
+                transactionType: request.TransactionType,
+                referenceType: request.ReferenceType,
+                fromDate: request.FromDate,
+                toDate: request.ToDate);
+            return Task.FromResult(q);
         }
     }
 }

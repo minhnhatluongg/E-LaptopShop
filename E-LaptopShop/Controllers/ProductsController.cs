@@ -10,6 +10,7 @@ using E_LaptopShop.Application.Features.Products.Commands.UpdateProduct;
 using E_LaptopShop.Application.Features.Products.Commands.DeleteProduct;
 using E_LaptopShop.Application.Features.Products.Queries.GetProductById;
 using E_LaptopShop.Application.Features.Products.Queries.GetAllProducts;
+using E_LaptopShop.Application.Common.Pagination;
 
 namespace E_LaptopShop.Controllers;
 
@@ -33,7 +34,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ApiResponse<IEnumerable<ProductDto>>>> GetAll([FromQuery] GetAllProductsQuery query)
     {
         var products = await _mediator.Send(query);
-        return Ok(ApiResponse<IEnumerable<ProductDto>>.SuccessResponse(products));
+        return Ok(ApiResponse<PagedResult<ProductDto>>.SuccessResponse(products));
     }
 
     /// <summary>

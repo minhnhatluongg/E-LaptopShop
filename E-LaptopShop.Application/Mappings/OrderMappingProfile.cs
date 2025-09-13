@@ -95,14 +95,12 @@ namespace E_LaptopShop.Application.Mappings
         {
             if (product?.ProductImages != null && product.ProductImages.Any())
             {
-                // Try to get main image first
                 var mainImage = product.ProductImages.FirstOrDefault(pi => pi.IsMain == true);
                 if (mainImage?.SysFile?.FileUrl != null)
                 {
                     return mainImage.SysFile.FileUrl;
                 }
 
-                // If no main image, get first available image
                 var firstImage = product.ProductImages.FirstOrDefault();
                 if (firstImage?.SysFile?.FileUrl != null)
                 {

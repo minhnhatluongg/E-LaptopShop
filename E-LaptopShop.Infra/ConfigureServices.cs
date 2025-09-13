@@ -38,6 +38,7 @@ namespace E_LaptopShop.Infra
             services.AddScoped<IOrderItemRepository, OrderItemRepository>();
             services.AddScoped<IInventoryRepository, InventoryRepository>();
             services.AddScoped<IInventoryHistoryRepository, InventoryHistoryRepository>();
+            services.AddScoped<IUserAddressRepository,UserAddressRepository>();
 
             return services;
         }

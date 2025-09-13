@@ -20,6 +20,13 @@ public interface ICategoryRepository
         CancellationToken cancellationToken = default
     );
 
+    IQueryable<Category> GetFilteredQueryable(
+        int? id = null,
+        string? name = null,
+        string? description = null,
+        CancellationToken cancellationToken = default
+    );
+
     Task<(IEnumerable<Category> Items, int totalCount)> GetAllFilterAndPagination(
         int pageNumber,
         int pageSize,

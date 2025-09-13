@@ -6,9 +6,9 @@ using E_LaptopShop.Domain.Entities;
 
 namespace E_LaptopShop.Application.Mappings;
 
-public class ProductSpecificationProfile : Profile
+public class ProductSpecificationMappingProfile : Profile
 {
-    public ProductSpecificationProfile()
+    public ProductSpecificationMappingProfile()
     {
         CreateMap<ProductSpecification, ProductSpecificationDto>();
         CreateMap<CreateProductSpecificationCommand, ProductSpecification>();

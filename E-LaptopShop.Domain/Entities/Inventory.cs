@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using E_LaptopShop.Domain.Enums;
 
 namespace E_LaptopShop.Domain.Entities
 {
@@ -30,16 +31,17 @@ namespace E_LaptopShop.Domain.Entities
         public decimal LastPurchasePrice { get; set; } = 0;
 
         [Column(TypeName = "datetime")]
-        public DateTime LastUpdated { get; set; } = DateTime.Now;
+        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
         [StringLength(100)]
         public string? Location { get; set; }
-
         // Navigation properties
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
 
         [InverseProperty("Inventory")]
         public virtual ICollection<InventoryHistory> HistoryRecords { get; set; } = new List<InventoryHistory>();
+        [Required]
+        public InventoryStatus Status { get; set; } = InventoryStatus.Active;
     }
 }

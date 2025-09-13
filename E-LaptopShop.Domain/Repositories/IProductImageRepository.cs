@@ -28,14 +28,14 @@ namespace E_LaptopShop.Domain.Repositories
             CancellationToken cancellationToken = default
         );
 
+        IQueryable<ProductImage> GetFilteredQueryable(ProductImageFilterParams filters);
+
         Task<(IEnumerable<ProductImage> Items, int totalCount)> GetAllFilterAndPagination(
             int pageNumber,
             int pageSize,
             ProductImageFilterParams filter,
             string? sortBy = null,
             bool isAscending = true,
-            string? searchTerm = null,
-            string[]? searchFields = null,
             CancellationToken cancellationToken = default
         );
     }

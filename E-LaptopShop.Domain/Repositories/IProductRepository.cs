@@ -7,6 +7,11 @@ namespace E_LaptopShop.Domain.Repositories;
 
 public interface IProductRepository
 {
+    IQueryable<Product> GetFilteredQueryable(
+        int? categoryId = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        bool? inStock = null);
     Task<Product> GetByIdAsync(int id, CancellationToken cancellationToken);
     Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken);
     Task<IEnumerable<Product>> GetFilteredAsync(
@@ -15,6 +20,7 @@ public interface IProductRepository
         decimal? maxPrice = null,
         bool? inStock = null,
         CancellationToken cancellationToken = default);
+
     Task<Product> AddAsync(Product product, CancellationToken cancellationToken);
     Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken);
     Task<int> DeleteAsync(int id, CancellationToken cancellationToken);

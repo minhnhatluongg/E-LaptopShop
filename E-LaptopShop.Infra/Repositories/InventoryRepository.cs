@@ -1,5 +1,6 @@
 ﻿using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Enums;
+using E_LaptopShop.Domain.FilterParams;
 using E_LaptopShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace E_LaptopShop.Infra.Repositories
 {
@@ -222,6 +224,87 @@ namespace E_LaptopShop.Infra.Repositories
             }
         }
 
+        public IQueryable<Inventory> GetFilteredQueryable(
+            InventoryFilterParams f)
+        {
+            var q = _context.Inventories.AsQueryable();
+
+            // include khi thực sự cần object graph (nếu dùng ProjectTo<TDto> thường KHÔNG cần Include)
+            if (f.IncludeProduct)
+                q = q.Include(i => i.Product).AsSplitQuery();
+
+            // ---- Exact filters ----
+            if (f.Id.HasValue) q = q.Where(i => i.Id == f.Id.Value);
+            if (f.ProductId.HasValue) q = q.Where(i => i.ProductId == f.ProductId.Value);
+
+            if (!string.IsNullOrWhiteSpace(f.Location))
+            {
+                var loc = f.Location.Trim();
+                q = q.Where(i => i.Location == loc); // SQL Server mặc định case-insensitive; nếu cần: EF.Functions.Like(i.Location, loc)
+            }
+
+            // normalize + apply ranges (dùng biến cục bộ)
+            var (csMin, csMax) = Normalize(f.CurrentStockMin, f.CurrentStockMax);
+            var (msMin, msMax) = Normalize(f.MinimumStockMin, f.MinimumStockMax);
+            var (rpMin, rpMax) = Normalize(f.ReorderPointMin, f.ReorderPointMax);
+            var (acMin, acMax) = Normalize(f.AverageCostMin, f.AverageCostMax);
+            var (lpMin, lpMax) = Normalize(f.LastPurchasePriceMin, f.LastPurchasePriceMax);
+            var (luFrom, luTo) = Normalize(f.LastUpdatedFrom, f.LastUpdatedTo);
+
+            if (csMin.HasValue) q = q.Where(i => i.CurrentStock >= csMin.Value);
+            if (csMax.HasValue) q = q.Where(i => i.CurrentStock <= csMax.Value);
+            if (msMin.HasValue) q = q.Where(i => i.MinimumStock >= msMin.Value);
+            if (msMax.HasValue) q = q.Where(i => i.MinimumStock <= msMax.Value);
+            if (rpMin.HasValue) q = q.Where(i => i.ReorderPoint >= rpMin.Value);
+            if (rpMax.HasValue) q = q.Where(i => i.ReorderPoint <= rpMax.Value);
+            if (acMin.HasValue) q = q.Where(i => i.AverageCost >= acMin.Value);
+            if (acMax.HasValue) q = q.Where(i => i.AverageCost <= acMax.Value);
+            if (lpMin.HasValue) q = q.Where(i => i.LastPurchasePrice >= lpMin.Value);
+            if (lpMax.HasValue) q = q.Where(i => i.LastPurchasePrice <= lpMax.Value);
+            if (luFrom.HasValue) q = q.Where(i => i.LastUpdated >= luFrom.Value);
+            if (luTo.HasValue) q = q.Where(i => i.LastUpdated <= luTo.Value);
+
+            // ---- Derived Status (nghiệp vụ) ----
+            if (f.Status.HasValue)
+            {
+                q = f.Status.Value switch
+                {
+                    InventoryStatus.InStock => q.Where(i => i.CurrentStock > i.MinimumStock),
+                    InventoryStatus.LowStock => q.Where(i => i.CurrentStock > 0 && i.CurrentStock <= i.MinimumStock),
+                    InventoryStatus.OutOfStock => q.Where(i => i.CurrentStock == 0),
+                    InventoryStatus.Reordering => q.Where(i => i.CurrentStock <= i.ReorderPoint),
+                    InventoryStatus.Discontinued => q.Where(i => i.CurrentStock == 0 && i.MinimumStock == 0),
+                    _ => q
+                };
+            }
+
+            return q.AsNoTracking();
+        }
+
+        #region Helper methods for normalization
+        private static (int? min, int? max) Normalize(int? min, int? max)
+        {
+            if (min.HasValue && max.HasValue && min > max)
+                (min, max) = (max, min);
+            return (min, max);
+        }
+
+        private static (decimal? min, decimal? max) Normalize(decimal? min, decimal? max)
+        {
+            if (min.HasValue && max.HasValue && min > max)
+                (min, max) = (max, min);
+            return (min, max);
+        }
+
+        private static (DateTime? from, DateTime? to) Normalize(DateTime? from, DateTime? to)
+        {
+            if (from.HasValue && to.HasValue && from > to)
+                (from, to) = (to, from);
+            return (from, to);
+        }
+
+        #endregion
+
         public async Task<int> GetTotalStockAsync()
         {
             try
@@ -306,6 +389,47 @@ namespace E_LaptopShop.Infra.Repositories
                 _logger.LogError(ex, "Error updating stock for product ID {ProductId}.", productId);
                 throw new Exception("An error occurred while updating the stock.", ex);
             }
+        }
+
+        public IQueryable<Inventory> GetQueryable()
+        {
+            return _context.Inventories
+            .Include(i => i.Product)        
+                .ThenInclude(p => p.Category)  
+            .AsQueryable();
+        }
+
+        public IQueryable<Inventory> GetFilteredQueryable(int? id = null,
+            int? productId = null,
+            int? currentStock = null,
+            int? minimumStock = null,
+            int? reorderPoint = null,
+            decimal? averageCost = null,
+            decimal? lastPurchasePrice = null,
+            DateTime? lastUpdated = null,
+            string? location = null,
+            InventoryStatus? status = null)
+        {
+            var q = _context.Inventories
+                    .AsNoTracking()
+                    .Include(i => i.Product)
+                        .ThenInclude(p => p.Category)
+                    .Include(i => i.Product)
+                        .ThenInclude(p => p.ProductSpecifications)
+                    .AsQueryable();
+
+            if (id.HasValue) q = q.Where(i => i.Id == id.Value);
+            if (productId.HasValue) q = q.Where(i => i.ProductId == productId.Value);
+            if (currentStock.HasValue) q = q.Where(i => i.CurrentStock == currentStock.Value);
+            if (minimumStock.HasValue) q = q.Where(i => i.MinimumStock == minimumStock.Value);
+            if (reorderPoint.HasValue) q = q.Where(i => i.ReorderPoint == reorderPoint.Value);
+            if (averageCost.HasValue) q = q.Where(i => i.AverageCost == averageCost.Value);
+            if (lastPurchasePrice.HasValue) q = q.Where(i => i.LastPurchasePrice == lastPurchasePrice.Value);
+            if (lastUpdated.HasValue) q = q.Where(i => i.LastUpdated.Date == lastUpdated.Value.Date);
+            if (!string.IsNullOrWhiteSpace(location)) q = q.Where(i => i.Location == location);
+            if (status.HasValue) q = q.Where(i => i.Status == status.Value);
+
+            return q;
         }
     }
 }
