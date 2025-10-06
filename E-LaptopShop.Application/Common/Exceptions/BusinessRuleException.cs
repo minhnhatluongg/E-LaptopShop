@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -7,14 +8,9 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Common.Exceptions
 {
-    public class BusinessRuleException : AppException
+    public sealed class BusinessRuleException : AppException
     {
-        public string Rule { get; }
-
-        public BusinessRuleException(string rule, string message, object? context = null)
-            : base(HttpStatusCode.UnprocessableEntity, "BUSINESS_RULE_VIOLATION", message, context)
-        {
-            Rule = rule;
-        }
+        public BusinessRuleException(string rule, string message, object? context = null, string? code = null)
+            : base(StatusCodes.Status422UnprocessableEntity, $"{rule}: {message}", code, context) { }
     }
 }

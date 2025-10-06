@@ -1,36 +1,36 @@
 ﻿using AutoMapper;
 using E_LaptopShop.Application.DTOs;
-using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Application.Services.Interfaces;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductImage
 {
-    class CreateProductImageCommandHandler : IRequestHandler<CreateProductImageCommand, ProductImageDto>
+    /// <summary>
+    /// Thin handler that delegates CreateProductImage operations to ProductImageService
+    /// Uses BaseService v2 pattern for clean separation of concerns and business logic encapsulation
+    /// </summary>
+    public class CreateProductImageCommandHandler : IRequestHandler<CreateProductImageCommand, ProductImageDto>
     {
-        private readonly IProductImageRepository _productImageRepository;
+        private readonly IProductImageService _productImageService;
+        private readonly ILogger<CreateProductImageCommandHandler> _logger;
         private readonly IMapper _mapper;
 
-        public CreateProductImageCommandHandler(IProductImageRepository productImageRepository, IMapper mapper)
+        public CreateProductImageCommandHandler(
+            IMapper mapper,
+            IProductImageService productImageService,
+            ILogger<CreateProductImageCommandHandler> logger)
         {
-            _productImageRepository = productImageRepository;
+            _productImageService = productImageService;
+            _logger = logger;
             _mapper = mapper;
         }
 
         public async Task<ProductImageDto> Handle(CreateProductImageCommand request, CancellationToken cancellationToken)
         {
-            var productImage = _mapper.Map<Domain.Entities.ProductImage>(request);
-            
-            productImage.CreatedAt = DateTime.Now;
-            productImage.UploadedAt = DateTime.Now;
-            productImage.IsActive = true;
-            
-            var createdProductImage = await _productImageRepository.AddImageAsync(productImage, cancellationToken);
-            return _mapper.Map<ProductImageDto>(createdProductImage);
+            _logger.LogInformation("Handling CreateProductImageCommand for ProductId: {ProductId}", request.ProductId);
+            var createDto = _mapper.Map<CreateProductImageCommand, CreateProductImageRequestDto>(request);
+            return await _productImageService.CreateAsync(createDto, cancellationToken);
         }
     }
 }

@@ -54,8 +54,9 @@ public class ProductsController : ControllerBase
     [HttpPost("CreateProduct")]
     [Authorize(Roles = "Admin,Manager")]
     [Tags("👑 Admin")]
-    public async Task<ActionResult<ApiResponse<ProductDto>>> Create([FromBody] CreateProductCommand command)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> Create([FromBody] CreateProductRequestDto requestDto)
     {
+        var command = new CreateProductCommand(requestDto);
         var product = await _mediator.Send(command);
         return CreatedAtAction(
             nameof(GetById),
@@ -69,13 +70,14 @@ public class ProductsController : ControllerBase
     [HttpPut("UpdateProduct/{id}")]
     [Authorize(Roles = "Admin,Manager")]
     [Tags("👑 Admin")]
-    public async Task<ActionResult<ApiResponse<ProductDto>>> Update(int id, [FromBody] UpdateProductCommand command)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> Update(int id, [FromBody] UpdateProductRequestDto requestDto)
     {
-        if (id != command.Id)
+        if (id != requestDto.Id)
         {
             return BadRequest(ApiResponse<ProductDto>.ErrorResponse("ID mismatch"));
         }
 
+        var command = new UpdateProductCommand(requestDto);
         var product = await _mediator.Send(command);
         return Ok(ApiResponse<ProductDto>.SuccessResponse(product, $"{EntityName} updated successfully"));
     }

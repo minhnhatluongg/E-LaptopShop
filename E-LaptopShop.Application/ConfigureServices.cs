@@ -1,4 +1,6 @@
 ﻿using E_LaptopShop.Application.Common.Behaviors;
+using E_LaptopShop.Application.Services.Implementations;
+using E_LaptopShop.Application.Services.Interfaces;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +29,10 @@ namespace E_LaptopShop.Application
             // ✨ Add Pipeline Behaviors (thứ tự quan trọng!)
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+            // ✨ Add Service Layer
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IProductImageService, ProductImageService>();
 
             return services;
         }

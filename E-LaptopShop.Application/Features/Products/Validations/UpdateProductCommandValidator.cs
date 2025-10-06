@@ -7,23 +7,25 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
 {
     public UpdateProductCommandValidator()
     {
-        RuleFor(x => x.Id)
+        RuleFor(x => x.RequestDto.Id)
             .GreaterThan(0).WithMessage("Id must be greater than 0");
 
-        RuleFor(x => x.Name)
+        RuleFor(x => x.RequestDto.Name)
             .NotEmpty().WithMessage("Name is required")
             .MaximumLength(150).WithMessage("Name must not exceed 150 characters");
 
-        RuleFor(x => x.Price)
+        RuleFor(x => x.RequestDto.Price)
             .GreaterThan(0).WithMessage("Price must be greater than 0");
 
-        RuleFor(x => x.Discount)
+        RuleFor(x => x.RequestDto.Discount)
             .GreaterThanOrEqualTo(0).WithMessage("Discount must be greater than or equal to 0")
             .LessThanOrEqualTo(100).WithMessage("Discount must be less than or equal to 100")
-            .When(x => x.Discount.HasValue);
+            .When(x => x.RequestDto.Discount.HasValue);
 
-        RuleFor(x => x.InStock)
-            .GreaterThanOrEqualTo(0).WithMessage("InStock must be greater than or equal to 0")
-            .When(x => x.InStock.HasValue);
+        RuleFor(x => x.RequestDto.InStock)
+            .GreaterThanOrEqualTo(0).WithMessage("InStock must be greater than or equal to 0");
+
+        RuleFor(x => x.RequestDto.CategoryId)
+            .GreaterThan(0).WithMessage("CategoryId must be greater than 0");
     }
 } 

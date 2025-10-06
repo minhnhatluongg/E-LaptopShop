@@ -15,8 +15,13 @@ namespace E_LaptopShop.Application.Services
     {
         private readonly JwtSettings _jwtSettings;
         private readonly IUserAuthRepository _userAuthRepository;
-        private readonly JwtSecurityTokenHandler _tokenHandler;
-        private readonly TokenValidationParameters _tokenValidationParameters;
+        private readonly JwtSecurityTokenHandler _tokenHandler = new();
+
+
+        private readonly TokenValidationParameters _accessValidateParams;
+        private readonly TokenValidationParameters _refreshValidateParams;
+        private readonly SigningCredentials _signingCreds;
+
 
         public JwtService(
             IOptions<JwtSettings> jwtSettings,
@@ -24,13 +29,14 @@ namespace E_LaptopShop.Application.Services
         {
             _jwtSettings = jwtSettings.Value;
             _userAuthRepository = userAuthRepository;
-            _tokenHandler = new JwtSecurityTokenHandler();
-            
-            // Cấu hình validation parameters
-            _tokenValidationParameters = new TokenValidationParameters
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+            _signingCreds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            _accessValidateParams = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = _jwtSettings.ValidateIssuerSigningKey,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey)),
+                IssuerSigningKey = key,
                 ValidateIssuer = _jwtSettings.ValidateIssuer,
                 ValidIssuer = _jwtSettings.Issuer,
                 ValidateAudience = _jwtSettings.ValidateAudience,
@@ -39,118 +45,104 @@ namespace E_LaptopShop.Application.Services
                 ClockSkew = TimeSpan.FromMinutes(_jwtSettings.ClockSkewMinutes),
                 RequireExpirationTime = true
             };
+
+            _refreshValidateParams = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = key,
+                ValidateIssuer = _jwtSettings.ValidateIssuer,
+                ValidIssuer = _jwtSettings.Issuer,
+                ValidateAudience = _jwtSettings.ValidateAudience,
+                ValidAudience = _jwtSettings.Audience,
+                ValidateLifetime = true, 
+                ClockSkew = TimeSpan.FromMinutes(_jwtSettings.ClockSkewMinutes),
+                RequireExpirationTime = true
+            };
         }
 
         public async Task<TokenResponse> GenerateTokensAsync(User user, CancellationToken cancellationToken = default)
         {
-            // Generate Access Token
-            var accessToken = GenerateAccessToken(user);
-            var accessTokenExpiration = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes);
-            
-            // Generate Refresh Token
-            var refreshToken = GenerateRefreshToken();
-            var refreshTokenExpiration = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
-            
-            // Save refresh token to database
-            await _userAuthRepository.UpdateRefreshTokenAsync(
-                user.Id, 
-                refreshToken, 
-                refreshTokenExpiration, 
-                cancellationToken);
+            if (user == null) throw new ArgumentNullException(nameof(user));
+
+            var now = DateTime.UtcNow;
+
+            // ===== ACCESS (typ=access) =====
+            var accessClaims = BuildAccessClaims(user);
+            var accessExpires = now.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes);
+            var accessJwt = new JwtSecurityToken(
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
+                claims: accessClaims,
+                notBefore: now,
+                expires: accessExpires,
+                signingCredentials: _signingCreds);
+            var accessToken = _tokenHandler.WriteToken(accessJwt);
+
+            // ===== REFRESH (typ=refresh) =====
+            var refreshClaims = BuildRefreshClaims(user);
+            var refreshExpires = now.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+            var refreshJwt = new JwtSecurityToken(
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
+                claims: refreshClaims,
+                notBefore: now,
+                expires: refreshExpires,
+                signingCredentials: _signingCreds);
+            var refreshToken = _tokenHandler.WriteToken(refreshJwt);
+
+            // Lưu/rotate refresh token trong DB để có thể revoke
+            await _userAuthRepository.UpdateRefreshTokenAsync(user.Id, refreshToken, refreshExpires, cancellationToken);
 
             return new TokenResponse
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                AccessTokenExpiration = accessTokenExpiration,
-                RefreshTokenExpiration = refreshTokenExpiration,
-                ExpiresIn = (int)TimeSpan.FromMinutes(_jwtSettings.AccessTokenExpirationMinutes).TotalSeconds,
+                AccessTokenExpiration = accessExpires,
+                RefreshTokenExpiration = refreshExpires,
+                ExpiresIn = (int)(accessExpires - now).TotalSeconds,
                 Roles = user.Role != null ? new[] { user.Role.Name } : Array.Empty<string>()
             };
         }
 
         public async Task<TokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
         {
-            var principal = GetPrincipalFromExpiredToken(refreshToken);
-            if (principal == null)
-                throw new SecurityTokenException("Invalid refresh token");
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                throw new SecurityTokenException("Refresh token is required");
 
-            var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out int userId))
-                throw new SecurityTokenException("Invalid user ID in token");
+            // Validate refresh JWT (còn hạn + ký đúng + đúng alg)
+            var principal = ValidateToken(refreshToken, _refreshValidateParams);
+            if (principal == null) throw new SecurityTokenException("Invalid or expired refresh token");
 
-            // Validate refresh token in database
-            var isValidRefreshToken = await _userAuthRepository.IsValidRefreshTokenAsync(
-                userId, refreshToken, cancellationToken);
-            
-            if (!isValidRefreshToken)
-                throw new SecurityTokenException("Invalid or expired refresh token");
+            // Bảo vệ: chỉ chấp nhận typ=refresh
+            var jwt = _tokenHandler.ReadJwtToken(refreshToken);
+            var typ = jwt.Claims.FirstOrDefault(c => c.Type == "typ")?.Value;
+            if (!string.Equals(typ, "refresh", StringComparison.OrdinalIgnoreCase))
+                throw new SecurityTokenException("Invalid token type");
 
-            // Get fresh user data
-            var user = await _userAuthRepository.GetByIdWithRoleAsync(userId, cancellationToken);
-            
-            if (user == null || !user.IsActive)
-                throw new SecurityTokenException("User not found or inactive");
+            var userIdClaim = principal.FindFirst("sub")?.Value
+                           ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // Revoke old refresh token
-            await _userAuthRepository.RevokeRefreshTokenAsync(userId, cancellationToken);
+            if (!int.TryParse(userIdClaim, out var userId))
+                throw new SecurityTokenException("Invalid user id in token");
 
-            // Generate new tokens
+            // Đối chiếu refresh token hiện tại trong DB
+            var isValid = await _userAuthRepository.IsValidRefreshTokenAsync(userId, refreshToken, cancellationToken);
+            if (!isValid) throw new SecurityTokenException("Refresh token is revoked or not recognized");
+
+            var user = await _userAuthRepository.GetByIdWithRoleAsync(userId, cancellationToken)
+                       ?? throw new SecurityTokenException("User not found");
+            if (!user.IsActive) throw new SecurityTokenException("User inactive");
+
+            // Rotate: phát hành cặp mới và update DB
             return await GenerateTokensAsync(user, cancellationToken);
         }
-
-        private string GenerateAccessToken(User user)
-        {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Email, user.Email),
-                new(ClaimTypes.Name, user.FullName),
-                new("user_id", user.Id.ToString()),
-                new("email", user.Email),
-                new("full_name", user.FullName),
-                new("email_confirmed", user.EmailConfirmed.ToString().ToLower()),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // 2025: Token ID
-                new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-            };
-
-            // Add role claims
-            if (user.Role != null)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, user.Role.Name));
-                claims.Add(new Claim("role", user.Role.Name));
-            }
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
-                Issuer = _jwtSettings.Issuer,
-                Audience = _jwtSettings.Audience,
-                SigningCredentials = credentials
-            };
-
-            var token = _tokenHandler.CreateToken(tokenDescriptor);
-            return _tokenHandler.WriteToken(token);
-        }
-
-        private string GenerateRefreshToken()
-        {
-            var randomBytes = new byte[64];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomBytes);
-            return Convert.ToBase64String(randomBytes);
-        }
-
         public async Task<bool> ValidateTokenAsync(string token)
         {
             try
             {
-                _tokenHandler.ValidateToken(token, _tokenValidationParameters, out SecurityToken validatedToken);
-                return validatedToken != null;
+                _tokenHandler.ValidateToken(token, _accessValidateParams, out var validated);
+                return validated is JwtSecurityToken jwt &&
+                       jwt.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase);
             }
             catch
             {
@@ -160,16 +152,21 @@ namespace E_LaptopShop.Application.Services
 
         public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
         {
-            var tokenValidationParameters = _tokenValidationParameters.Clone();
-            tokenValidationParameters.ValidateLifetime = false; // 2025: Allow expired tokens for refresh
+            // DÙNG CHO ACCESS TOKEN đã hết hạn (đọc claim mà không cần hạn)
+            var p = _accessValidateParams.Clone();
+            p.ValidateLifetime = false;
 
             try
             {
-                var principal = _tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken validatedToken);
-                
-                if (validatedToken is not JwtSecurityToken jwtSecurityToken || 
-                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-                    throw new SecurityTokenException("Invalid token");
+                var principal = _tokenHandler.ValidateToken(token, p, out var validated);
+                if (validated is not JwtSecurityToken jwt ||
+                    !jwt.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                    return null;
+
+                // Nếu có claim typ thì chỉ chấp nhận access
+                var typ = jwt.Claims.FirstOrDefault(c => c.Type == "typ")?.Value;
+                if (!string.IsNullOrEmpty(typ) && !typ.Equals("access", StringComparison.OrdinalIgnoreCase))
+                    return null;
 
                 return principal;
             }
@@ -193,13 +190,33 @@ namespace E_LaptopShop.Application.Services
         {
             try
             {
-                var jwt = _tokenHandler.ReadJwtToken(token);
-                return jwt.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+                ClaimsPrincipal? principal;
+                try
+                {
+                    principal = _tokenHandler.ValidateToken(token, _accessValidateParams, out _);
+                }
+                catch (SecurityTokenExpiredException)
+                {
+                    principal = GetPrincipalFromExpiredToken(token);
+                }
+
+                var id = principal?.FindFirst("sub")?.Value
+                      ?? principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                return id;
             }
-            catch
+            catch { return null; }
+        }
+        private ClaimsPrincipal? ValidateToken(string token, TokenValidationParameters p)
+        {
+            try
             {
-                return null;
+                var principal = _tokenHandler.ValidateToken(token, p, out var validated);
+                if (validated is not JwtSecurityToken jwt ||
+                    !jwt.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                    return null;
+                return principal;
             }
+            catch { return null; }
         }
 
         public IEnumerable<string> GetRolesFromToken(string token)
@@ -207,12 +224,47 @@ namespace E_LaptopShop.Application.Services
             try
             {
                 var jwt = _tokenHandler.ReadJwtToken(token);
-                return jwt.Claims.Where(x => x.Type == ClaimTypes.Role).Select(x => x.Value);
+                return jwt.Claims
+                          .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
+                          .Select(c => c.Value)
+                          .Distinct(StringComparer.OrdinalIgnoreCase)
+                          .ToArray();
             }
             catch
             {
                 return Enumerable.Empty<string>();
             }
+        }
+
+        private static IEnumerable<Claim> BuildAccessClaims(User user)
+        {
+            var claims = new List<Claim>
+            {
+                new("sub", user.Id.ToString()),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+                new("typ", "access"),
+                new(ClaimTypes.Name, user.FullName ?? string.Empty),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            };
+
+            if (!string.IsNullOrWhiteSpace(user.Role?.Name))
+            {
+                claims.Add(new(ClaimTypes.Role, user.Role!.Name));
+                claims.Add(new("role", user.Role!.Name)); // optional
+            }
+
+            return claims;
+        }
+
+        private static IEnumerable<Claim> BuildRefreshClaims(User user)
+        {
+            return new[]
+            {
+                new Claim("sub", user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+                new Claim("typ", "refresh")
+            };
         }
     }
 }

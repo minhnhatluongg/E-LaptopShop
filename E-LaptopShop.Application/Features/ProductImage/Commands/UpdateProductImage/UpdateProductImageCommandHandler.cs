@@ -1,32 +1,46 @@
-﻿using AutoMapper;
-using E_LaptopShop.Application.DTOs;
-using E_LaptopShop.Domain.Repositories;
+﻿using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.Services.Interfaces;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Application.Features.ProductImage.Commands.UpdateProductImage
 {
+    /// <summary>
+    /// Thin handler that delegates UpdateProductImage operations to ProductImageService
+    /// Uses BaseService v2 pattern for clean separation of concerns and business logic encapsulation
+    /// </summary>
     public class UpdateProductImageCommandHandler : IRequestHandler<UpdateProductImageCommand, ProductImageDto>
     {
-        private readonly IProductImageRepository _productImageRepository;
-        private readonly IMapper _mapper;
+        private readonly IProductImageService _productImageService;
+        private readonly ILogger<UpdateProductImageCommandHandler> _logger;
 
-        public UpdateProductImageCommandHandler(IProductImageRepository productImageRepository, IMapper mapper)
+        public UpdateProductImageCommandHandler(
+            IProductImageService productImageService,
+            ILogger<UpdateProductImageCommandHandler> logger)
         {
-            _productImageRepository = productImageRepository;
-            _mapper = mapper;
+            _productImageService = productImageService;
+            _logger = logger;
         }
 
         public async Task<ProductImageDto> Handle(UpdateProductImageCommand request, CancellationToken cancellationToken)
         {
-            var productImage = _mapper.Map<Domain.Entities.ProductImage>(request);
-            var updatedProductImage = await _productImageRepository.UpdateImageAsync(productImage, cancellationToken);
-            var productImageDto = _mapper.Map<ProductImageDto>(updatedProductImage);
-            return productImageDto;
+            _logger.LogInformation("Handling UpdateProductImageCommand for ProductImage ID: {ImageId}", request.Id);
+
+            var updateDto = new UpdateProductImageRequestDto
+            {
+                Id = request.Id,
+                ProductId = request.ProductId,
+                SysFileId = request.SysFileId,
+                ImageUrl = request.ImageUrl,
+                FileType = request.FileType,
+                FileSize = request.FileSize,
+                IsMain = request.IsMain,
+                DisplayOrder = request.DisplayOrder,
+                AltText = request.AltText,
+                Title = request.Title,
+                IsActive = request.IsActive
+            };
+            return await _productImageService.UpdateAsync(request.Id, updateDto, cancellationToken);
         }
     }
 }

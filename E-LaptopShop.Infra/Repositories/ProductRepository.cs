@@ -18,7 +18,7 @@ public class ProductRepository : IProductRepository
         _context = context;
     }
 
-    public async Task<Product> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -29,8 +29,6 @@ public class ProductRepository : IProductRepository
                 .Include(p => p.ProductSpecifications)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-            if (product == null)
-                throw new KeyNotFoundException($"Product with ID {id} not found");
             return product;
         }
         catch (Exception ex)
@@ -39,7 +37,7 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -76,10 +74,14 @@ public class ProductRepository : IProductRepository
                 ? query.Where(p => p.InStock > 0)
                 : query.Where(p => p.InStock <= 0);
 
-        return await query.ToListAsync(cancellationToken);
+        return await query
+            .Include(p => p.Category)
+            .Include(p => p.ProductSpecifications)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<Product> AddAsync(Product product, CancellationToken cancellationToken)
+    public async Task<Product> AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -96,7 +98,7 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken)
+    public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -117,17 +119,17 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public async Task<int> DeleteAsync(int id, CancellationToken cancellationToken)
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         try
         {
             var product = await _context.Products.FindAsync(new object[] { id }, cancellationToken);
             if (product == null)
-                throw new KeyNotFoundException($"Product with ID {id} not found");
+                return false;
 
             _context.Products.Remove(product);
             await _context.SaveChangesAsync(cancellationToken);
-            return id;
+            return true;
         }
         catch (DbUpdateException ex)
         {
@@ -135,29 +137,89 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public IQueryable<Product> GetFilteredQueryable(int? categoryId = null, decimal? minPrice = null, decimal? maxPrice = null, bool? inStock = null)
+    public async Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId, CancellationToken cancellationToken = default)
     {
-        var q = _context.Products.AsQueryable();
-        q = q.Include(p => p.Category)
-            .Include(p => p.ProductImages)
-             .Include(p => p.ProductSpecifications)
-             .AsSplitQuery();
-        // Đổi min/max nếu người dùng nhập ngược
-        if (minPrice.HasValue && maxPrice.HasValue && minPrice > maxPrice)
-            (minPrice, maxPrice) = (maxPrice, minPrice);
-
-        if (categoryId.HasValue)
-            q = q.Where(p => p.CategoryId == categoryId.Value);
-
-        if (minPrice.HasValue)
-            q = q.Where(p => p.Price >= minPrice.Value);
-
-        if (maxPrice.HasValue)
-            q = q.Where(p => p.Price <= maxPrice.Value);
-
-        if (inStock.HasValue)
-            q = inStock.Value ? q.Where(p => p.InStock > 0)
-                              : q.Where(p => p.InStock <= 0);
-        return q.AsNoTracking();
+        try
+        {
+            return await _context.Products
+                .Where(p => p.CategoryId == categoryId)
+                .Include(p => p.Category)
+                .Include(p => p.ProductSpecifications)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error retrieving products for category {categoryId}", ex);
+        }
     }
+
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products.AnyAsync(p => p.Id == id, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error checking if product {id} exists", ex);
+        }
+    }
+
+    public async Task<int> GetCountAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products.CountAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Error getting product count", ex);
+        }
+    }
+
+        public async Task<int> GetCountByCategoryAsync(int categoryId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await _context.Products.CountAsync(p => p.CategoryId == categoryId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error getting product count for category {categoryId}", ex);
+            }
+        }
+
+        public IQueryable<Product> GetProductsQueryable(
+            int? categoryId = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            bool? inStock = null)
+        {
+            var query = _context.Products.AsQueryable();
+            
+            // Include related data for queries
+            query = query.Include(p => p.Category)
+                         .Include(p => p.ProductImages)
+                         .Include(p => p.ProductSpecifications)
+                         .AsSplitQuery()
+                         .AsNoTracking();
+
+            // Apply filters
+            if (categoryId.HasValue)
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+
+            if (minPrice.HasValue)
+                query = query.Where(p => p.Price >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                query = query.Where(p => p.Price <= maxPrice.Value);
+
+            if (inStock.HasValue)
+                query = inStock.Value 
+                    ? query.Where(p => p.InStock > 0)
+                    : query.Where(p => p.InStock <= 0);
+
+            return query;
+        }
 } 

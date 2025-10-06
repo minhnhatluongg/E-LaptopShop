@@ -8,99 +8,68 @@ namespace E_LaptopShop.Application.Common.Exceptions
 {
     public static class Throw
     {
-        /// <summary>
-        /// Throw validation exception (400 Bad Request)
-        /// Sử dụng khi input validation fails
-        /// </summary>
-        public static void BadRequest(string message, object? context = null)
-        {
-            throw new ValidationException(message, context);
-        }
+        public static void BadRequest(string message, object? context = null,
+            IReadOnlyDictionary<string, string[]>? errors = null, string? code = null)
+            => throw new ValidationException(message, context, errors, code);
 
-        /// <summary>
-        /// Throw not found exception (404 Not Found)
-        /// Tự động format message cho consistency
-        /// </summary>
         public static void NotFound(string resourceType, object? resourceId = null)
         {
             var message = resourceId != null
                 ? $"{resourceType} with ID '{resourceId}' not found"
                 : $"{resourceType} not found";
-
             throw new NotFoundException(message, new { ResourceType = resourceType, ResourceId = resourceId });
         }
 
-        /// <summary>
-        /// Throw forbidden exception (403 Forbidden)
-        /// Format chuẩn cho access denied messages
-        /// </summary>
+        public static void NotFound<T>(object? resourceId = null)
+            => NotFound(typeof(T).Name, resourceId);
+
         public static void Forbidden(string resource, string action = "access")
-        {
-            var message = $"Access denied for action '{action}' on resource '{resource}'";
-            throw new ForbiddenException(message, new { Resource = resource, Action = action });
-        }
+            => throw new ForbiddenException(
+                $"Access denied for action '{action}' on resource '{resource}'",
+                new { Resource = resource, Action = action });
 
-        /// <summary>
-        /// Throw conflict exception (409 Conflict)
-        /// Đơn giản hóa việc throw conflict
-        /// </summary>
         public static void Conflict(string message, object? context = null)
-        {
-            throw new ConflictException(message, context);
-        }
+            => throw new ConflictException(message, context);
 
-        /// <summary>
-        /// Throw business rule exception (422 Unprocessable Entity)
-        /// Bắt buộc phải có rule name để tracking
-        /// </summary>
         public static void BusinessRule(string rule, string message, object? context = null)
-        {
-            throw new BusinessRuleException(rule, message, context);
-        }
+            => throw new BusinessRuleException(rule, message, context);
 
-        /// <summary>
-        /// Throw unauthorized exception (401 Unauthorized)
-        /// </summary>
         public static void Unauthorized(string message = "Unauthorized access")
-        {
-            throw new UnauthorizedException(message);
-        }
+            => throw new UnauthorizedException(message);
 
-        /// <summary>
-        /// Conditional throw - chỉ throw khi condition = true
-        /// Giúp code ngắn gọn hơn
-        /// </summary>
         public static void If(bool condition, Action throwAction)
         {
             if (condition) throwAction();
         }
 
-        /// <summary>
-        /// Throw if object is null - pattern phổ biến nhất
-        /// Tự động format message và context
-        /// </summary>
         public static void IfNull<T>(T? obj, string resourceType, object? resourceId = null) where T : class
         {
-            if (obj == null) NotFound(resourceType, resourceId);
+            if (obj is null) NotFound(resourceType, resourceId);
         }
 
-        /// <summary>
-        /// Throw if collection is empty
-        /// Useful cho validation
-        /// </summary>
         public static void IfEmpty<T>(IEnumerable<T>? collection, string message)
         {
-            if (collection == null || !collection.Any()) BadRequest(message);
-        }
+            if (collection is null) BadRequest(message);
 
-        /// <summary>
-        /// Throw if string is null or empty
-        /// Common validation pattern
-        /// </summary>
+            if (collection is ICollection<T> col)
+            {
+                if (col.Count == 0) BadRequest(message);
+            }
+            else if (!collection.Any())
+            {
+                BadRequest(message);
+            }
+        }
         public static void IfNullOrEmpty(string? value, string fieldName)
         {
             if (string.IsNullOrWhiteSpace(value))
                 BadRequest($"{fieldName} is required");
+        }
+
+        public static void IfNullOrNonPositive(int? value, string fieldName)
+        {
+            if (!value.HasValue || value <= 0)
+                BadRequest($"{fieldName} must be greater than zero ", new { value });
         }
     }
 }

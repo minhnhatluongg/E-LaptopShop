@@ -1,3 +1,4 @@
+using E_LaptopShop.Application.Common.Exceptions;
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -146,5 +147,6 @@ namespace E_LaptopShop.Infra.Repositories
 
             return user.IsLocked;
         }
+        
     }
 }

@@ -1,17 +1,17 @@
 ﻿using E_LaptopShop.Application.DTOs;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Features.ProductImage.Commands.UpdateProductImage
 {
+    /// <summary>
+    /// Command for updating an existing ProductImage
+    /// Contains all necessary data for ProductImage update
+    /// </summary>
     public record UpdateProductImageCommand : IRequest<ProductImageDto>
     {
         public int Id { get; init; }
         public int ProductId { get; init; }
+        public int? SysFileId { get; init; }
         public string ImageUrl { get; init; } = null!;
         public string FileType { get; init; } = null!;
         public long FileSize { get; init; }
@@ -19,5 +19,6 @@ namespace E_LaptopShop.Application.Features.ProductImage.Commands.UpdateProductI
         public int DisplayOrder { get; init; }
         public string? AltText { get; init; }
         public string? Title { get; init; }
+        public bool IsActive { get; init; } = true;
     }
 }

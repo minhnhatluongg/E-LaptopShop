@@ -2,7 +2,6 @@
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.FilterParams;
 using E_LaptopShop.Domain.Repositories;
-using E_LaptopShop.Infra.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using E_LaptopShop.Application.Common.Exceptions;
 
 namespace E_LaptopShop.Infra.Repositories
 {
@@ -28,7 +28,7 @@ namespace E_LaptopShop.Infra.Repositories
             try
             {
                 if (productImage == null)
-                    throw new ArgumentNullException(nameof(productImage));
+                    Throw.IfNull(productImage, nameof(productImage));
                 await _context.ProductImages.AddAsync(productImage, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
                 return productImage;
@@ -241,7 +241,7 @@ namespace E_LaptopShop.Infra.Repositories
                     .AsNoTracking()
                     .Where(x => x.ProductId == productId)
                     .ToListAsync(cancellationToken);
-                if (productImages == null || !productImages.Any())
+                if (productImages == null)
                     throw new KeyNotFoundException($"No product images found for product ID {productId}.");
                 return productImages;
             }
@@ -314,7 +314,7 @@ namespace E_LaptopShop.Infra.Repositories
             try
             {
                 //Validate input
-                if (imageIdToOrderMap == null || !imageIdToOrderMap.Any())
+                if (imageIdToOrderMap == null || imageIdToOrderMap.Count == 0)
                     throw new ArgumentNullException(nameof(imageIdToOrderMap), "Image ID to order map cannot be null or empty.");
                 if (imageIdToOrderMap.Any(x => x.Key <= 0 || x.Value < 0))
                     throw new ArgumentOutOfRangeException(nameof(imageIdToOrderMap), "Image ID must be greater than zero and display order must be non-negative.");
@@ -357,10 +357,9 @@ namespace E_LaptopShop.Infra.Repositories
             {
 
                 if (productImage == null)
-                    throw new ArgumentNullException(nameof(productImage));
-                if( productImage.Id <= 0)
-                    throw new ArgumentOutOfRangeException(nameof(productImage), "ID must be greater than zero.");
-                
+                    Throw.IfNull(productImage, nameof(productImage));
+                if ( productImage.Id <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(productImage.Id), "ID must be greater than zero.");
                 var productImageToUpdate = await _context.ProductImages
                     .FirstOrDefaultAsync(x => x.Id == productImage.Id, cancellationToken);
                 if (productImageToUpdate == null)
@@ -370,7 +369,6 @@ namespace E_LaptopShop.Infra.Repositories
                 try
                 {
                     _context.Entry(productImageToUpdate).CurrentValues.SetValues(
-                        // Tạo object mới chỉ chứa các thuộc tính không null
                         typeof(Product).GetProperties()
                             .Where(p => p.CanWrite && p.GetValue(productImage) != null)
                             .ToDictionary(p => p.Name, p => p.GetValue(productImage))

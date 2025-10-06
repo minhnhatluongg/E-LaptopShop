@@ -62,6 +62,7 @@ namespace E_LaptopShop.Controllers
                     result.IsCompleted ? "All chunks uploaded successfully" : "Chunk uploaded successfully"));
             }
             catch (Exception ex) {
+
                 return StatusCode(500, ApiResponse<ChunkUploadResponseDto>.ErrorResponse("An error occurred while uploading chunk"));
             }
         }

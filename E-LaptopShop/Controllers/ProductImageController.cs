@@ -5,7 +5,7 @@ using E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductImage
 using E_LaptopShop.Application.Features.ProductImage.Commands.DeleteProductImgages;
 using E_LaptopShop.Application.Features.ProductImage.Commands.SetMainImage;
 using E_LaptopShop.Application.Features.ProductImage.Commands.UpdateProductImage;
-using E_LaptopShop.Application.Features.ProductImage.Queries.GetAllFilteredAndPagination;
+using E_LaptopShop.Application.Features.ProductImage.Queries.GetAllProductImage;
 using E_LaptopShop.Application.Features.ProductImage.Queries.GetImagesByProductId;
 using E_LaptopShop.Application.Models;
 using MediatR;
@@ -144,11 +144,9 @@ namespace E_LaptopShop.Controllers
         {
             try
             {
-                // Đảm bảo productId từ route khớp với command
                 if (productId != command.ProductId)
                     return BadRequest(ApiResponse<ProductImageDto>.ErrorResponse("Product ID mismatch"));
 
-                // Thiết lập user
                 command.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
 
                 var result = await _mediator.Send(command);

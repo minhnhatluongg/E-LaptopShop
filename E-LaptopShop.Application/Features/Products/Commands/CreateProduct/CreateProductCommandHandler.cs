@@ -1,31 +1,34 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
-using E_LaptopShop.Domain.Entities;
-using E_LaptopShop.Domain.Repositories;
 using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Application.Features.Products.Commands.CreateProduct;
 
+/// <summary>
+/// Optimized handler using BaseService pattern
+/// Handler responsibility: Extract DTO and delegate to service
+/// </summary>
 public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, ProductDto>
 {
-    private readonly IProductRepository _productRepository;
-    private readonly IMapper _mapper;
+    private readonly IProductService _productService;
+    private readonly ILogger<CreateProductCommandHandler> _logger;
 
-    public CreateProductCommandHandler(IProductRepository productRepository, IMapper mapper)
+    public CreateProductCommandHandler(
+        IProductService productService,
+        ILogger<CreateProductCommandHandler> logger)
     {
-        _productRepository = productRepository;
-        _mapper = mapper;
+        _productService = productService;
+        _logger = logger;
     }
 
     public async Task<ProductDto> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
-        var product = _mapper.Map<Product>(request);
-        product.CreatedAt = DateTime.UtcNow;
+        _logger.LogInformation("Handling CreateProductCommand for product: {ProductName}", request.RequestDto.Name);
 
-        var createdProduct = await _productRepository.AddAsync(product, cancellationToken);
-        return _mapper.Map<ProductDto>(createdProduct);
+        // Use BaseService method - all validation, business rules, and mapping handled automatically
+        return await _productService.CreateProductAsync(request.RequestDto, cancellationToken);
     }
 } 
