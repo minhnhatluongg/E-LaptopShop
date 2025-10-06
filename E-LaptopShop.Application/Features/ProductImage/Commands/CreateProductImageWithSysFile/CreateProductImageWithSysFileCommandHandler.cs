@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.Services.Interfaces;
 using E_LaptopShop.Domain.Repositories;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,52 +14,34 @@ namespace E_LaptopShop.Application.Features.ProductImage.Commands.CreateProductI
 {
     public class CreateProductImageWithSysFileCommandHandler : IRequestHandler<CreateProductImageWithSysFileCommand, ProductImageDto>
     {
-        private readonly IProductImageRepository _productImageRepository;
-        private readonly ISysFileRepository _sysFileRepository;
+        private readonly IProductImageService _productImageService;
         private readonly IMapper _mapper;
+        private readonly ILogger<CreateProductImageWithSysFileCommandHandler> _logger;
 
         public CreateProductImageWithSysFileCommandHandler(
-            IProductImageRepository productImageRepository,
-            ISysFileRepository sysFileRepository,
-            IMapper mapper)
+            IProductImageService productImageService,
+            IMapper mapper,
+            ILogger<CreateProductImageWithSysFileCommandHandler> logger
+            )
         {
-            _productImageRepository = productImageRepository;
-            _sysFileRepository = sysFileRepository;
+            _productImageService = productImageService;
             _mapper = mapper;
+            _logger = logger;
         }
-
         public async Task<ProductImageDto> Handle(CreateProductImageWithSysFileCommand request, CancellationToken cancellationToken)
         {
-            var sysFile = await _sysFileRepository.GetByIdAsync(request.SysFileId, cancellationToken);
+            _logger.LogInformation("Handling CreateProductImageWithSysFileCommand for ProductId: {ProductId}, SysFileId: {SysFileId}",
+                request.ProductId, request.SysFileId);
 
-            var productImage = new Domain.Entities.ProductImage
-            {
-                ProductId = request.ProductId,
-                SysFileId = request.SysFileId,
-                ImageUrl = sysFile.FileUrl, 
-                IsMain = request.IsMain,
-                FileType = sysFile.FileType,
-                FileSize = sysFile.FileSize,
-                DisplayOrder = 0,
-                AltText = request.AltText,
-                Title = request.Title,
-                CreatedAt = DateTime.Now,
-                UploadedAt = DateTime.Now,
-                IsActive = true,
-                CreatedBy = request.CreatedBy
-            };
-
-            if (request.IsMain)
-            {
-                var createdProductImage = await _productImageRepository.AddImageAsync(productImage, cancellationToken);
-                await _productImageRepository.SetMainImageAsync(createdProductImage.Id, cancellationToken);
-                return _mapper.Map<ProductImageDto>(createdProductImage);
-            }
-            else
-            {
-                var createdProductImage = await _productImageRepository.AddImageAsync(productImage, cancellationToken);
-                return _mapper.Map<ProductImageDto>(createdProductImage);
-            }
+            return await _productImageService.CreateWithSysFileAsync(
+            productId: request.ProductId,
+            sysFileId: request.SysFileId,
+            isMain: request.IsMain,
+            altText: request.AltText,
+            title: request.Title,
+            createdBy: request.CreatedBy,
+            cancellationToken
+            );
         }
     }
 }

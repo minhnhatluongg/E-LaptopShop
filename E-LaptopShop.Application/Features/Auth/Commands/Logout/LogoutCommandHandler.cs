@@ -16,7 +16,6 @@ namespace E_LaptopShop.Application.Features.Auth.Commands.Logout
         {
             try
             {
-                // Revoke user's refresh token
                 await _jwtService.RevokeTokenAsync(request.UserId, cancellationToken);
                 return true;
             }

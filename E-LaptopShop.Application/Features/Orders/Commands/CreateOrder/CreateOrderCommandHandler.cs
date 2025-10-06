@@ -61,7 +61,7 @@ namespace E_LaptopShop.Application.Features.Orders.Commands.CreateOrder
                 orderItems = await GetItemsFromCommand(request.Items, cancellationToken);
             }
 
-            if (!orderItems.Any())
+            if (orderItems.Count == 0)
             {
                 throw new InvalidOperationException("Cannot create order with no items");
             }
@@ -136,7 +136,7 @@ namespace E_LaptopShop.Application.Features.Orders.Commands.CreateOrder
         private async Task<List<(Product Product, int Quantity, decimal UnitPrice)>> GetItemsFromCart(int userId, CancellationToken cancellationToken)
         {
             var cart = await _cartRepository.GetCartWithItemsAsync(userId, cancellationToken);
-            if (cart?.Items == null || !cart.Items.Any())
+            if (cart?.Items == null || cart.Items.Count == 0)
             {
                 throw new InvalidOperationException("Shopping cart is empty");
             }
@@ -187,12 +187,13 @@ namespace E_LaptopShop.Application.Features.Orders.Commands.CreateOrder
             return orderItems;
         }
 
-        private async Task<string> GenerateOrderNumber()
+        private static ValueTask<string> GenerateOrderNumber()
         {
-            var prefix = "ORD";
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var random = new Random().Next(100, 999);
-            return $"{prefix}{timestamp}{random}";
+            const string prefix = "ORD";
+            var now = DateTime.UtcNow;
+            var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000);
+            var value = $"{prefix}{now:yyyyMMddHHmmssfff}{rand:D6}";
+            return ValueTask.FromResult(value);
         }
 
         private async Task<decimal> CalculateDiscount(string discountCode, decimal subTotal)

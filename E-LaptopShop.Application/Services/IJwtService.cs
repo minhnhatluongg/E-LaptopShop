@@ -24,7 +24,6 @@ namespace E_LaptopShop.Application.Services
         public string TokenType { get; set; } = "Bearer";
         public int ExpiresIn { get; set; } // seconds
         
-        // 2025 Enhancement: Token metadata
         public string Scope { get; set; } = "api";
         public string[] Roles { get; set; } = Array.Empty<string>();
     }

@@ -1,22 +1,21 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Application.Services.Interfaces;
 
 namespace E_LaptopShop.Application.Features.Products.Commands.DeleteProduct;
 
 public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand, int>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
-    public DeleteProductCommandHandler(IProductRepository productRepository)
+    public DeleteProductCommandHandler(IProductService productService)
     {
-        _productRepository = productRepository;
+        _productService = productService;
     }
 
     public async Task<int> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
     {
-        await _productRepository.DeleteAsync(request.Id, cancellationToken);
-        return request.Id; // Return the deleted product's ID
+        return await _productService.DeleteProductAsync(request.Id, cancellationToken);
     }
 } 

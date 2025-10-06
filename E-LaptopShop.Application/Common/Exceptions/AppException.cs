@@ -7,23 +7,27 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Common.Exceptions
 {
+    // Base: chứa StatusCode + ErrorCode + Context + Errors (cho validation)
     public abstract class AppException : Exception
     {
-        public HttpStatusCode StatusCode { get; }
-        public string ErrorCode { get; }
-        public object? ErrorContext { get; }
+        public int StatusCode { get; }
+        public string? ErrorCode { get; }
+        public object? Context { get; }
+        public IReadOnlyDictionary<string, string[]>? Errors { get; }
 
         protected AppException(
-            HttpStatusCode statusCode, 
-            string errorCode, 
-            string message, 
-            object? errorContext = null,
-            Exception? innerException = null)
-            : base(message, innerException)
+            int statusCode, string message,
+            string? errorCode = null,
+            object? context = null,
+            IReadOnlyDictionary<string, string[]>? errors = null,
+            Exception? inner = null)
+            : base(message, inner)
         {
             StatusCode = statusCode;
             ErrorCode = errorCode;
-            ErrorContext = errorContext;
+            Context = context;
+            Errors = errors;
         }
     }
+
 }

@@ -1,31 +1,29 @@
+using E_LaptopShop.Application.Common.Exceptions;
+using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.Services.Interfaces;
+using MediatR;
+using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using MediatR;
-using E_LaptopShop.Domain.Repositories;
-using E_LaptopShop.Application.DTOs;
 
 namespace E_LaptopShop.Application.Features.Products.Queries.GetProductById;
 
 public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
 {
-    private readonly IProductRepository _productRepository;
-    private readonly IMapper _mapper;
+    private readonly ILogger<GetProductByIdQueryHandler> _logger;
+    private readonly IProductService _productService;
 
-    public GetProductByIdQueryHandler(IProductRepository productRepository, IMapper mapper)
+    public GetProductByIdQueryHandler(IProductService productService, ILogger<GetProductByIdQueryHandler> logger)
     {
-        _productRepository = productRepository;
-        _mapper = mapper;
+        _productService = productService;
+        _logger = logger;
     }
 
-    public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ProductDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        var product = await _productRepository.GetByIdAsync(request.Id, cancellationToken);
-        if (product == null)
-        {
-            throw new KeyNotFoundException($"Product with ID {request.Id} not found.");
-        }
-
-        return _mapper.Map<ProductDto>(product);
+        Throw.IfNullOrNonPositive(request.Id, nameof(request.Id));
+        _logger.LogInformation("Handling GetProductByIdQuery - Id: {Id}", request.Id);
+        var product = await _productService.GetProductByIdAsync(request.Id, cancellationToken);
+        return product;
     }
 } 

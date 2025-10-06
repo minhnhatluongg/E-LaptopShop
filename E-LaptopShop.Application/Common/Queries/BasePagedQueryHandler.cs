@@ -101,11 +101,8 @@ namespace E_LaptopShop.Application.Common.Queries
 
             return entities; 
         }
-
-        // ✨ Virtual method cho default sorting
         protected virtual IQueryable<TEntity> ApplyDefaultDatabaseSorting(IQueryable<TEntity> queryable)
         {
-            // Sử dụng reflection để tìm Id property
             var idProperty = typeof(TEntity).GetProperty("Id");
             if (idProperty != null)
             {

@@ -1,72 +1,42 @@
-﻿using System.Collections.Generic;
+﻿using AutoMapper;
+using E_LaptopShop.Application.Common.Pagination;
+using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.DTOs.QueryParams;
+using E_LaptopShop.Application.Services.Interfaces;
+using MediatR;
+using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using MediatR;
-using E_LaptopShop.Domain.Repositories;
-using E_LaptopShop.Application.DTOs;
-using E_LaptopShop.Application.Common.Queries;
-using E_LaptopShop.Application.Common.Pagination;
-using E_LaptopShop.Domain.Entities;
-using Microsoft.Extensions.Logging;
-using E_LaptopShop.Application.Common.Pagination_Sort_Filter;
-using E_LaptopShop.Application.Common.Helpers;
-using Microsoft.EntityFrameworkCore;
 
 namespace E_LaptopShop.Application.Features.Products.Queries.GetAllProducts;
 
-public class GetAllProductsQueryHandler : BasePagedQueryHandler<Product, ProductDto, GetAllProductsQuery>, IRequestHandler<GetAllProductsQuery, PagedResult<ProductDto>>
+/// <summary>
+/// Optimized handler using BasePagedQuery pattern
+/// Handler responsibility: Direct mapping from Query to Service parameters
+/// </summary>
+public class GetAllProductsQueryHandler : IRequestHandler<GetAllProductsQuery, PagedResult<ProductDto>>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
+    private readonly ILogger<GetAllProductsQueryHandler> _logger;
+    private readonly IMapper _mapper;
 
     public GetAllProductsQueryHandler(
-        IProductRepository productRepository,
         IMapper mapper,
-        ILogger<GetAllProductsQueryHandler> logger) : base(mapper, logger)
+        IProductService productService,
+        ILogger<GetAllProductsQueryHandler> logger)
     {
-        _productRepository = productRepository;
+        _productService = productService;
+        _logger = logger;
+        _mapper = mapper;
     }
 
-    protected override IQueryable<Product> ApplyDatabaseSearch(IQueryable<Product> queryable, SearchOptions search)
+    public async Task<PagedResult<ProductDto>> Handle(GetAllProductsQuery request, CancellationToken cancellationToken)
     {
-        if (!search.HasSearch) return queryable;
-        var searchTerm = search.SearchTerm!;
-
-        return queryable.Where(p =>
-            EF.Functions.Like(p.Name, $"%{searchTerm}%") ||
-            EF.Functions.Like(p.Description ?? "", $"%{searchTerm}%") ||
-            EF.Functions.Like(p.Category.Name ?? "", $"%{searchTerm}%") ||
-            p.ProductSpecifications.Any(spec =>
-                EF.Functions.Like(spec.CPU ?? "", $"%{searchTerm}%") ||
-                EF.Functions.Like(spec.RAM ?? "", $"%{searchTerm}%"))
-            );
+        _logger.LogInformation("Handling GetAllProductsQuery - Search: {Search}, CategoryId: {CategoryId}",
+            request.Search, request.CategoryId);
+        var queryParams = _mapper.Map<GetAllProductsQuery, ProductQueryParams>(request);
+        queryParams.ValidateAndNormalize();
+        queryParams.ValidateBusinessRules();
+        return await _productService.GetAllProductsAsync(queryParams, cancellationToken);
     }
-
-    protected override IQueryable<Product> ApplyDatabaseSorting(IQueryable<Product> q, SortingOptions sort)
-    {
-        return sort.SortBy?.ToLowerInvariant() switch
-        {
-            "name" => sort.IsAscending ? q.OrderBy(p => p.Name) : q.OrderByDescending(p => p.Name),
-            "price" => sort.IsAscending ? q.OrderBy(p => p.Price) : q.OrderByDescending(p => p.Price),
-            "id" => sort.IsAscending ? q.OrderBy(p => p.Id) : q.OrderByDescending(p => p.Id),
-            _ => ApplyDefaultDatabaseSorting(q)
-        };
-    }
-
-    protected override Task<IQueryable<Product>> GetFilteredQueryable(GetAllProductsQuery request, CancellationToken cancellationToken)
-    {
-        var min = request.MinPrice;
-        var max = request.MaxPrice;
-        if (min.HasValue && max.HasValue && min > max)
-            (min, max) = (max, min);
-
-        var q = _productRepository.GetFilteredQueryable(request.CategoryId, min, max, request.InStock);
-        return Task.FromResult(q);
-    }
-
-    Task<PagedResult<ProductDto>> IRequestHandler<GetAllProductsQuery, PagedResult<ProductDto>>.Handle(GetAllProductsQuery request, CancellationToken cancellationToken)
-    {
-        return ProcessQueryOptimized(request, cancellationToken);
-    }
-
 }

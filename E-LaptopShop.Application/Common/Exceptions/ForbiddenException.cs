@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -7,12 +8,9 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Common.Exceptions
 {
-    public class ForbiddenException : AppException
+    public sealed class ForbiddenException : AppException
     {
-        public ForbiddenException(string message, object? context = null)
-            : base(HttpStatusCode.Forbidden, "ACCESS_DENIED", message, context)
-        {
-
-        }
+        public ForbiddenException(string message, object? context = null, string? code = null)
+            : base(StatusCodes.Status403Forbidden, message, code, context) { }
     }
 }
