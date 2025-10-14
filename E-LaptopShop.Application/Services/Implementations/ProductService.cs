@@ -25,19 +25,27 @@ namespace E_LaptopShop.Application.Services.Implementations
     {
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
+        private readonly ISlugGenerator _slugGenerator;
 
         public ProductService(
             IProductRepository productRepository,
             ICategoryRepository categoryRepository,
             IMapper mapper,
+            ISlugGenerator slugGenerator,
             ILogger<ProductService> logger) : base(mapper, logger)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
+            _slugGenerator = slugGenerator;
         }
 
         public async Task<ProductDto> CreateProductAsync(CreateProductRequestDto requestDto, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrEmpty(requestDto.Slug))
+            {
+                var slug = _slugGenerator.GenerateSlugAsync(requestDto.Name, entitySet: "Product", excludeId: (int?)null, cancellationToken);
+                requestDto.Slug = await slug;
+            }
             return await CreateAsync(requestDto, cancellationToken);
         }
 

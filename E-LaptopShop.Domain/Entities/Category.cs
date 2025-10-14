@@ -11,6 +11,8 @@ public partial class Category
     [Key]
     public int Id { get; set; }
 
+    public string Slug { get; set; } = null!;
+
     [StringLength(100)]
     public string Name { get; set; } = null!;
 

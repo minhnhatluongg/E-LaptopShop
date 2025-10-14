@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public sealed class RoleLookup : IRoleLookup
+    public sealed class RoleLookupRepository : IRoleLookup
     {
-        private readonly DbContext _db;
+        private readonly ApplicationDbContext _db;
         private static readonly ConcurrentDictionary<string, (int Id, string Name)> _cache = new();
 
-        public RoleLookup(DbContext db)
+        public RoleLookupRepository(ApplicationDbContext db)
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
         }
