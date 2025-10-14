@@ -66,7 +66,6 @@ namespace E_LaptopShop.Application.Common
                     StatusCode = (int)appEx.StatusCode,
                     ErrorCode = appEx.ErrorCode,
                     Message = appEx.Message,
-                    Context = appEx.ErrorContext,
                     Errors = appEx is ValidationException validationEx ? validationEx.Errors : null,
                     Timestamp = DateTime.UtcNow
                 },

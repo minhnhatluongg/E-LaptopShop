@@ -32,4 +32,5 @@ public interface IProductRepository
     Task<Product> AddAsync(Product product, CancellationToken cancellationToken = default);
     Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+
 } 

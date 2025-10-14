@@ -69,6 +69,8 @@ public partial class ApplicationDbContext : DbContext
         modelBuilder.Entity<Category>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC07DBFE0BFB");
+            entity.Property(p => p.Slug).HasMaxLength(200).IsUnicode(false);
+            entity.HasIndex(p => p.Slug).IsUnique();
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -112,6 +114,8 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(p => p.CreatedAt)
                      .HasColumnType("datetime")
                      .HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.Slug).HasMaxLength(200).IsUnicode(false);
+            entity.HasIndex(p => p.Slug).IsUnique();
             entity.Property(e => e.Discount).HasDefaultValue(0m);
             entity.Property(e => e.InStock).HasDefaultValue(0);
             entity.Property(e => e.IsActive)

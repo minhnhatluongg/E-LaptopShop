@@ -7,10 +7,6 @@ using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Application.Features.Products.Commands.CreateProduct;
 
-/// <summary>
-/// Optimized handler using BaseService pattern
-/// Handler responsibility: Extract DTO and delegate to service
-/// </summary>
 public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, ProductDto>
 {
     private readonly IProductService _productService;
@@ -28,7 +24,6 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     {
         _logger.LogInformation("Handling CreateProductCommand for product: {ProductName}", request.RequestDto.Name);
 
-        // Use BaseService method - all validation, business rules, and mapping handled automatically
         return await _productService.CreateProductAsync(request.RequestDto, cancellationToken);
     }
 } 
