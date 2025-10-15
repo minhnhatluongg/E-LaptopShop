@@ -6,10 +6,6 @@ using E_LaptopShop.Domain.Entities;
 
 namespace E_LaptopShop.Application.Services.Interfaces
 {
-    /// <summary>
-    /// ProductImage service interface that extends BaseService for CRUD and GetAll operations
-    /// Includes domain-specific business operations for ProductImage management
-    /// </summary>
     public interface IProductImageService : IBaseService<ProductImageDto, CreateProductImageRequestDto, UpdateProductImageRequestDto, ProductImageQueryParams>
     {
         #region Domain-Specific Business Operations

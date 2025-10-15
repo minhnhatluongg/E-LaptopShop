@@ -38,7 +38,6 @@ namespace E_LaptopShop.Application.Common
 
             var errorResponse = CreateErrorResponse(exception);
 
-            // Log với appropriate level
             if (errorResponse.StatusCode >= 500)
             {
                 _logger.LogError(exception, "Server error: {Message}", exception.Message);
@@ -59,7 +58,6 @@ namespace E_LaptopShop.Application.Common
         {
             return exception switch
             {
-                // ✅ Handle custom AppException
                 AppException appEx => new ErrorResponse
                 {
                     Success = false,
@@ -70,7 +68,6 @@ namespace E_LaptopShop.Application.Common
                     Timestamp = DateTime.UtcNow
                 },
 
-                // ✅ Handle FluentValidation.ValidationException
                 FluentValidation.ValidationException fluentEx => new ErrorResponse
                 {
                     Success = false,
@@ -83,7 +80,6 @@ namespace E_LaptopShop.Application.Common
                     Timestamp = DateTime.UtcNow
                 },
 
-                // ✅ Handle standard exceptions
                 UnauthorizedAccessException => new ErrorResponse
                 {
                     Success = false,
@@ -137,7 +133,6 @@ namespace E_LaptopShop.Application.Common
                     Message = "Database update error occurred.",
                     Timestamp = DateTime.UtcNow
                 },
-                // ✅ Default case
                 _ => new ErrorResponse
                 {
                     Success = false,

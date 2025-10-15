@@ -361,9 +361,18 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-#Upload folders
+
+# Chỉ commit file mẫu
+E-LaptopShop/appsettings.json
+E-LaptopShop/appsettings.*.json
+!E-LaptopShop/appsettings.Example.json
+
+# File local riêng (không commit)
+E-LaptopShop/appsettings.Local.json
+E-LaptopShop/appsettings.*.local.json
+
+# Thư mục upload (không commit)
 E-LaptopShop/uploads/
 E-LaptopShop/temp-uploads/
-E-LaptopShop/appsettings.Development.json
-E-LaptopShop/appsettings.json
+
 

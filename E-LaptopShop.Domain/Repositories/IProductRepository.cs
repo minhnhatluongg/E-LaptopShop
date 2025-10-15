@@ -7,7 +7,6 @@ namespace E_LaptopShop.Domain.Repositories;
 
 public interface IProductRepository
 {
-    // Query operations - no IQueryable exposed
     Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Product>> GetFilteredAsync(
@@ -20,7 +19,6 @@ public interface IProductRepository
     Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default);
     Task<int> GetCountAsync(CancellationToken cancellationToken = default);
     Task<int> GetCountByCategoryAsync(int categoryId, CancellationToken cancellationToken = default);
-
     // Advanced query operations for service layer
     IQueryable<Product> GetProductsQueryable(
         int? categoryId = null,

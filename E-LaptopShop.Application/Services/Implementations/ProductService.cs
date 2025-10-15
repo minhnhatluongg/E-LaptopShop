@@ -26,17 +26,19 @@ namespace E_LaptopShop.Application.Services.Implementations
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly ISlugGenerator _slugGenerator;
-
+        private readonly IBrandRepositoy _brandRepositoy;
         public ProductService(
             IProductRepository productRepository,
             ICategoryRepository categoryRepository,
             IMapper mapper,
             ISlugGenerator slugGenerator,
+            IBrandRepositoy brandRepository,
             ILogger<ProductService> logger) : base(mapper, logger)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _slugGenerator = slugGenerator;
+            _brandRepositoy = brandRepository;
         }
 
         public async Task<ProductDto> CreateProductAsync(CreateProductRequestDto requestDto, CancellationToken cancellationToken = default)
@@ -165,11 +167,9 @@ namespace E_LaptopShop.Application.Services.Implementations
             _logger.LogInformation("Getting all products with filters - CategoryId: {CategoryId}, Search: {Search}",
                 queryParams.CategoryId, queryParams.Search);
 
-            // Validate and normalize parameters
             queryParams.ValidateAndNormalize();
             queryParams.ValidateBusinessRules();
 
-            // Use base class method - all common logic handled there
             return await GetAllAsync(queryParams, cancellationToken);
         }
 
@@ -177,7 +177,6 @@ namespace E_LaptopShop.Application.Services.Implementations
 
         #region BaseService Implementation
 
-        // CRUD Repository Implementations
         protected override async Task<Product?> GetEntityByIdAsync(int id, CancellationToken cancellationToken)
         {
             return await _productRepository.GetByIdAsync(id, cancellationToken);
@@ -198,10 +197,8 @@ namespace E_LaptopShop.Application.Services.Implementations
             return await _productRepository.DeleteAsync(id, cancellationToken);
         }
 
-        // Query Repository Implementations (sync methods per new BaseService)
         protected override IQueryable<Product> GetBaseQueryable(ProductQueryParams queryParams)
         {
-            // Repository handles basic filtering only (data access)
             return _productRepository.GetProductsQueryable(
                 queryParams.CategoryId,
                 queryParams.MinPrice,
@@ -211,7 +208,6 @@ namespace E_LaptopShop.Application.Services.Implementations
 
         protected override IQueryable<Product> ApplyBusinessFilters(IQueryable<Product> q, ProductQueryParams p)
         {
-            // Business filters that repository doesn't handle
             if (p.IsActive.HasValue)
                 q = q.Where(x => x.IsActive == p.IsActive.Value);
 
@@ -221,14 +217,10 @@ namespace E_LaptopShop.Application.Services.Implementations
             if (p.MaxDiscount.HasValue)
                 q = q.Where(x => x.Discount <= p.MaxDiscount.Value);
 
-            // Brand filtering (searching in specifications)
-            if (!string.IsNullOrWhiteSpace(p.Brand))
+            if (p.BrandId.HasValue)
             {
-                q = q.Where(x =>
-                    x.ProductSpecifications.Any(spec =>
-                        EF.Functions.Like(spec.RAM ?? "", $"%{p.Brand}%")));
+                q = q.Where(x => x.BrandId == p.BrandId.Value);
             }
-
             return q;
         }
 
@@ -251,11 +243,9 @@ namespace E_LaptopShop.Application.Services.Implementations
 
         protected override IQueryable<Product> ApplyDomainSorting(IQueryable<Product> q, ProductQueryParams p)
         {
-            // Use new BaseService SortMap helper
             return ApplySortingByMap(q, p.SortBy, p.IsAscending);
         }
 
-        // Override SortMap to provide Product-specific sort expressions
         protected override IReadOnlyDictionary<string, Expression<Func<Product, object>>> SortMap =>
             new Dictionary<string, Expression<Func<Product, object>>>
             {
@@ -265,26 +255,37 @@ namespace E_LaptopShop.Application.Services.Implementations
                 ["createdat"] = x => x.CreatedAt,
                 ["stock"] = x => x.InStock,
                 ["categoryname"] = x => x.Category.Name ?? "",
-                ["id"] = x => x.Id
+                ["id"] = x => x.Id,
+                ["brandname"] = x => x.Brand.Name ?? "",
+                ["brandid"] = x => x.BrandId ?? 0
             };
 
-        // Business Validation Overrides (updated for new BaseService signature)
         protected override async Task ValidateCreateDto(CreateProductRequestDto dto, CancellationToken ct)
         {
-            // Validate category exists
             var category = await _categoryRepository.GetByIdAsync(dto.CategoryId, ct);
             if (category == null)
                 throw new KeyNotFoundException($"Category with ID {dto.CategoryId} not found");
+            if (dto.BrandId.HasValue)
+            {
+                var brand = await _brandRepositoy.GetByIdAsync(dto.BrandId.Value, ct);
+                if (brand == null)
+                    throw new KeyNotFoundException($"Brand with ID {dto.BrandId} not found");
+            }
         }
 
         protected override async Task ValidateUpdateDto(int id, UpdateProductRequestDto dto, Product existing, CancellationToken ct)
         {
-            // Validate category exists if changed
             if (existing.CategoryId != dto.CategoryId)
             {
                 var category = await _categoryRepository.GetByIdAsync(dto.CategoryId, ct);
                 if (category == null)
                     throw new KeyNotFoundException($"Category with ID {dto.CategoryId} not found");
+            }
+            if (existing.BrandId != dto.BrandId && dto.BrandId.HasValue) 
+            {
+                var brand = await _brandRepositoy.GetByIdAsync(dto.BrandId.Value, ct);
+                if (brand == null)
+                    throw new KeyNotFoundException($"Brand with ID {dto.BrandId} not found");
             }
         }
 
@@ -362,27 +363,20 @@ namespace E_LaptopShop.Application.Services.Implementations
             {
                 _logger.LogWarning("Product with similar name already exists in category {CategoryId}: {ProductName}", 
                     product.CategoryId, product.Name);
-                // Note: This is just a warning, not blocking the operation
-                // You can change this to throw an exception if name uniqueness is required
+                
             }
         }
 
         private async Task ValidateProductDeletionRules(Product product)
         {
-            // Add any business rules for product deletion
-            // For example: check if product is referenced in any orders, cart items, etc.
-            
-            // For now, we'll just check if it's not the last product in category
             var categoryProducts = await _productRepository.GetFilteredAsync(categoryId: product.CategoryId);
             var activeProductsInCategory = categoryProducts.Count(p => p.IsActive && p.Id != product.Id);
 
             if (activeProductsInCategory == 0)
             {
                 _logger.LogWarning("Deleting the last active product in category {CategoryId}", product.CategoryId);
-                // This is just a warning - you might want to prevent deletion or handle differently
             }
         }
-
         #endregion
     }
 }

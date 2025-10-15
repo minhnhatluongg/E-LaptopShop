@@ -1,4 +1,8 @@
-﻿using E_LaptopShop.Domain.Entities;
+﻿using E_LaptopShop.Application.Services.Interfaces;
+using E_LaptopShop.Domain.Entities;
+using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Infra.Common;
+using E_LaptopShop.Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,8 +11,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using E_LaptopShop.Domain.Repositories;
-using E_LaptopShop.Infra.Repositories;
 
 namespace E_LaptopShop.Infra
 {
@@ -40,6 +42,8 @@ namespace E_LaptopShop.Infra
             services.AddScoped<IInventoryHistoryRepository, InventoryHistoryRepository>();
             services.AddScoped<IUserAddressRepository,UserAddressRepository>();
             services.AddScoped<IRoleLookup, RoleLookupRepository>();
+            services.AddScoped<ISlugGenerator, SlugGenerator>();
+            services.AddScoped<IBrandRepositoy, BrandRepository>();
 
             return services;
         }
