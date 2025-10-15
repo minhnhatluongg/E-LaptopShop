@@ -22,6 +22,16 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
+    var env = builder.Environment;
+    builder.Configuration
+        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)                      // file thật local (không commit)
+        .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true) // Development/Production (không commit)
+        .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);               // tuỳ dev
+
+    if (env.IsDevelopment())
+        builder.Configuration.AddUserSecrets<Program>(optional: true);  // secrets dev
+
+    builder.Configuration.AddEnvironmentVariables();
 // Add Swagger with JWT Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

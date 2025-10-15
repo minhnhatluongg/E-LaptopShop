@@ -9,10 +9,10 @@ namespace E_LaptopShop.Application.DTOs.QueryParams
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
         public bool? InStock { get; set; }
-        public string? Brand { get; set; }
         public bool? IsActive { get; set; }
         public decimal? MinDiscount { get; set; }
         public decimal? MaxDiscount { get; set; }
+        public int? BrandId { get; set; }
 
         // Search parameters
         public string? Search { get; set; }
@@ -53,6 +53,11 @@ namespace E_LaptopShop.Application.DTOs.QueryParams
             if (!string.IsNullOrEmpty(SortBy))
             {
                 SortBy = SortBy.Trim().ToLowerInvariant();
+            }
+
+            if(MinDiscount.HasValue && MaxDiscount.HasValue && MinDiscount > MaxDiscount)
+            {
+                (MinDiscount, MaxDiscount) = (MaxDiscount, MinDiscount);
             }
         }
         public void ValidateBusinessRules()

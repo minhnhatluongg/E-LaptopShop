@@ -100,7 +100,6 @@ namespace E_LaptopShop.Controllers
 
                 var result = await _mediator.Send(command);
 
-                // 2025 Security: Set refresh token as HTTP-only cookie
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,

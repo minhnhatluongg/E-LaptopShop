@@ -13,10 +13,6 @@ using System.Linq.Expressions;
 
 namespace E_LaptopShop.Application.Services.Implementations
 {
-    /// <summary>
-    /// ProductImageService implementation that extends BaseService for comprehensive CRUD and business operations
-    /// Handles all ProductImage-related business logic, validation, and domain-specific operations
-    /// </summary>
     public class ProductImageService : BaseService<ProductImage, ProductImageDto, CreateProductImageRequestDto, UpdateProductImageRequestDto, ProductImageQueryParams>, IProductImageService
     {
         private readonly IProductImageRepository _productImageRepository;
@@ -149,12 +145,7 @@ namespace E_LaptopShop.Application.Services.Implementations
 
         protected override IQueryable<ProductImage> ApplyDomainSorting(IQueryable<ProductImage> q, ProductImageQueryParams p)
         {
-            if (!string.IsNullOrWhiteSpace(p.SortBy))
-            {
-                return ApplySortingByMap(q, p.SortBy.ToLowerInvariant(), p.IsAscending);
-            }
-
-            return ApplyDefaultSorting(q);
+            return ApplySortingByMap(q, p.SortBy, p.IsAscending);
         }
 
         #endregion

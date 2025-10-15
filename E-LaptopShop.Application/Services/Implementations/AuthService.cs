@@ -186,8 +186,8 @@ namespace E_LaptopShop.Application.Services.Implementations
             Throw.IfNull(dto.Password, nameof(dto.Password));
 
             var email = dto.Email.Trim().ToLowerInvariant();
-
-            if (await _userRepository.IsEmailUniqueAsync(email, null, ct))
+            var checkMail = !await _userRepository.IsEmailUniqueAsync(email, null, ct);
+            if (checkMail)
             {
                 Throw.Conflict("Email already in use", new object[] { email });
             }

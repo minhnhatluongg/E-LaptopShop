@@ -9,11 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Features.Products.Queries.GetAllProducts;
-
-/// <summary>
-/// Optimized handler using BasePagedQuery pattern
-/// Handler responsibility: Direct mapping from Query to Service parameters
-/// </summary>
 public class GetAllProductsQueryHandler : IRequestHandler<GetAllProductsQuery, PagedResult<ProductDto>>
 {
     private readonly IProductService _productService;
@@ -34,9 +29,11 @@ public class GetAllProductsQueryHandler : IRequestHandler<GetAllProductsQuery, P
     {
         _logger.LogInformation("Handling GetAllProductsQuery - Search: {Search}, CategoryId: {CategoryId}",
             request.Search, request.CategoryId);
-        var queryParams = _mapper.Map<GetAllProductsQuery, ProductQueryParams>(request);
+
+        var queryParams= _mapper.Map<ProductQueryParams>(request);
         queryParams.ValidateAndNormalize();
         queryParams.ValidateBusinessRules();
+        
         return await _productService.GetAllProductsAsync(queryParams, cancellationToken);
     }
 }

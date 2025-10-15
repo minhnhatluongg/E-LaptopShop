@@ -40,7 +40,7 @@ public partial class User
     [StringLength(255)]
     public string? Token { get; set; }
 
-    [StringLength(100)]
+    [StringLength(512)]
     public string? RefreshToken { get; set; }
 
     public DateTime? RefreshTokenExpiryTime { get; set; }

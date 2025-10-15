@@ -28,7 +28,6 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
     {
         _logger.LogInformation("Handling UpdateProductCommand for product ID: {ProductId}", request.RequestDto.Id);
 
-        // Use BaseService method - all validation, business rules, and mapping handled automatically
         return await _productService.UpdateProductAsync(request.RequestDto, cancellationToken);
     }
 } 

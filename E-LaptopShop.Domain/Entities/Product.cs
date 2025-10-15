@@ -28,6 +28,8 @@ public partial class Product
 
     public bool IsActive { get; set; } = true;
 
+    public int? BrandId { get; set; }
+
     [Column(TypeName = "datetime")]
     public DateTime? CreatedAt { get; set; }
 
@@ -56,4 +58,7 @@ public partial class Product
     [InverseProperty("Product")]
     public virtual ICollection<SupplierOrderItem> SupplierOrderItems { get; set; } = new List<SupplierOrderItem>();
 
+    [ForeignKey("BrandId")]
+    [InverseProperty("Products")]
+    public virtual Brand? Brand { get; set; }
 }

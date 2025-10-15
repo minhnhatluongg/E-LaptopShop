@@ -56,6 +56,7 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<SupplierOrderItem> SupplierOrderItems { get; set; }
 
     public virtual DbSet<SysFile> SysFiles { get; set; }
+    public virtual DbSet<Brand> Brands { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -395,6 +396,20 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.StorageType).HasDefaultValue("local");
 
             entity.Property(e => e.UploadedBy).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<Brand>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Brands__3214EC07");
+            entity.Property(p => p.Name).IsRequired().HasMaxLength(100);
+            entity.Property(p => p.Slug).HasMaxLength(200).IsUnicode(false);
+            entity.HasIndex(p => p.Slug).IsUnique();
+            entity.Property(p => p.IsActive)
+                .HasDefaultValue(true)
+                .IsRequired();
+            entity.Property(p => p.CreatedAt)
+                     .HasColumnType("datetime")
+                     .HasDefaultValueSql("GETUTCDATE()");
         });
     }
 

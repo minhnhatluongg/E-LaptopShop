@@ -26,7 +26,7 @@ public class CreateProductRequestDto
     [JsonIgnore]
     public string Slug { get; set; } = string.Empty;
     public string? Description { get; set; }
-
+    public int? BrandId { get; set; }
     [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
     public decimal Price { get; set; }
@@ -51,6 +51,7 @@ public class UpdateProductRequestDto
     [StringLength(150)]
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = null!;
+    public int? BrandId { get; set; }
     public string? Description { get; set; }
 
     [Required]
