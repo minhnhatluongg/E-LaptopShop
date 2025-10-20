@@ -9,11 +9,9 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Features.Categories.Commands.UpdateCategory
 {
-    public record UpdateCategoryCommand : IRequest<CategoryDto>
+    public class UpdateCategoryCommand : IRequest<CategoryDto>
     {
-        [JsonIgnore]
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public string? Description { get; set; }
+        public int Id { get; set; }  
+        public CategoryUpdateRequestDto RequestDto { get; init; } = null!;
     }
 }

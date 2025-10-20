@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Features.Brands.Commands.UpdateBrand
 {
-    public class UpdateBrandCommand : IRequest<BrandDto>
+    public sealed record UpdateBrandCommand : IRequest<BrandDto>
     {
         public int Id { get; init; }
         public UpdateBrandRequestDto RequestDto { get; init; } = null!;

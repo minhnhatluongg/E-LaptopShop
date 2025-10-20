@@ -1,4 +1,5 @@
 ﻿using E_LaptopShop.Application.Common.Queries;
+using E_LaptopShop.Application.DTOs.QueryParams___forGetAll;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -10,8 +11,6 @@ namespace E_LaptopShop.Application.Features.Categories.Queries.GetAllCategories
 {
     public class GetAllCategoriesQuery : BasePagedQuery<CategoryDto>
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public string? Description { get; set; }
+        public CategoriesParams QueryParams { get; init; } = new CategoriesParams();
     }
 }

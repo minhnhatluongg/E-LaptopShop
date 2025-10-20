@@ -10,7 +10,6 @@ using E_LaptopShop.Application.Features.Categories.Commands.UpdateCategory;
 using E_LaptopShop.Application.Features.Categories.Commands.DeleteCategory;
 using E_LaptopShop.Application.Features.Categories.Queries.GetCategoryById;
 using E_LaptopShop.Application.Features.Categories.Queries.GetAllCategories;
-using E_LaptopShop.Application.Features.Categories.Queries.GetFilterdPagedCategoriesQuery;
 using E_LaptopShop.Application.Common.Pagination;
 
 namespace E_LaptopShop.Controllers;
@@ -20,45 +19,52 @@ namespace E_LaptopShop.Controllers;
 public class CategoriesController : ControllerBase
 {
     private readonly IMediator _mediator;
-    public string EntityName => "Category";
+    private const string EntityName = "Category";
+
     public CategoriesController(IMediator mediator)
     {
         _mediator = mediator;
     }
 
     /// <summary>
-    /// 🔓 [PUBLIC] Lấy tất cả danh mục - Dành cho catalog browsing
+    /// 🔓 [PUBLIC] Lấy tất cả danh mục (có hỗ trợ lọc và phân trang)
     /// </summary>
-    [HttpGet("GetAllCategories")]
+    [HttpGet]
     [Tags("🔓 Public")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CategoryDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PagedResult<CategoryDto>>>> GetAll(
-        [FromQuery] GetAllCategoriesQuery request,
+        [FromQuery] GetAllCategoriesQuery query,
         CancellationToken ct)
     {
-        var result = await _mediator.Send(request, ct);
+        var result = await _mediator.Send(query, ct);
         return Ok(ApiResponse<PagedResult<CategoryDto>>.SuccessResponse(result));
     }
 
     /// <summary>
-    /// 🔓 [PUBLIC] Lấy chi tiết danh mục - Dành cho catalog browsing
+    /// 🔓 [PUBLIC] Lấy chi tiết danh mục theo ID
     /// </summary>
-    [HttpGet("GetCategoryById/{id}")]
+    [HttpGet("{id:int}")]
     [Tags("🔓 Public")]
-    public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(int id)
+    [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(int id, CancellationToken ct)
     {
-        var category = await _mediator.Send(new GetCategoryByIdQuery { Id = id });
-        return Ok(ApiResponse<CategoryDto>.SuccessResponse(category));
+        var result = await _mediator.Send(new GetCategoryByIdQuery { Id = id }, ct);
+        return Ok(ApiResponse<CategoryDto>.SuccessResponse(result));
     }
 
     /// <summary>
     /// 👑 [ADMIN] Tạo danh mục mới
     /// </summary>
-    [HttpPost("CreateCategory")]
+    [HttpPost]
     [Authorize(Roles = "Admin,Manager")]
     [Tags("👑 Admin")]
-    public async Task<ActionResult<ApiResponse<CategoryDto>>> Create([FromBody] CreateCategoryCommand command)
+    [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status201Created)]
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> Create(
+        [FromBody] CreateCategoryCommand command,
+        CancellationToken ct)
     {
-        var category = await _mediator.Send(command);
+        var category = await _mediator.Send(command, ct);
         return CreatedAtAction(
             nameof(GetById),
             new { id = category.Id },
@@ -68,39 +74,32 @@ public class CategoriesController : ControllerBase
     /// <summary>
     /// 👑 [ADMIN] Cập nhật danh mục
     /// </summary>
-    [HttpPut("UpdateCategory/{id}")]
+    [HttpPut("{id:int}")]
     [Authorize(Roles = "Admin,Manager")]
     [Tags("👑 Admin")]
-    public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(int id, [FromBody] UpdateCategoryCommand command)
+    [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(
+        int id,
+        [FromBody] UpdateCategoryCommand command,
+        CancellationToken ct)
     {
         command.Id = id;
-        var category = await _mediator.Send(command);
+        var category = await _mediator.Send(command, ct);
         return Ok(ApiResponse<CategoryDto>.SuccessResponse(category, $"{EntityName} updated successfully"));
     }
 
     /// <summary>
     /// 👑 [ADMIN] Xóa danh mục
     /// </summary>
-    [HttpDelete("DeleteCategory/{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin")]
     [Tags("👑 Admin")]
-    public async Task<ActionResult<ApiResponse<int>>> Delete(int id)
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken ct)
     {
-        var command = new DeleteCategoryCommand { Id = id };
-        var result = await _mediator.Send(command);
-        return Ok(new ApiResponse<int>
-        {
-            Success = true,
-            Message = $"{EntityName} deleted successfully",
-            Data = result
-        });
+        var result = await _mediator.Send(new DeleteCategoryCommand { Id = id }, ct);
+        return Ok(ApiResponse<bool>.SuccessResponse(result, $"{EntityName} deleted successfully"));
     }
-
-    [HttpGet("GetFilteredPagedCategories")]
-    public async Task<ActionResult<ApiResponse<PagedResult<CategoryDto>>>> GetFilteredPagedCategories(
-        [FromQuery] GetFilteredPagedCategoriesQuery query)
-    {
-        var result = await _mediator.Send(query);
-        return Ok(ApiResponse<PagedResult<CategoryDto>>.SuccessResponse(result));
-    }
-} 
+}

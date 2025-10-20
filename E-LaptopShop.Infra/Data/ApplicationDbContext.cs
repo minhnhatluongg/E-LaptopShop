@@ -69,9 +69,49 @@ public partial class ApplicationDbContext : DbContext
     {
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC07DBFE0BFB");
-            entity.Property(p => p.Slug).HasMaxLength(200).IsUnicode(false);
-            entity.HasIndex(p => p.Slug).IsUnique();
+            entity.ToTable("Categories");
+            entity.HasKey(e => e.Id).HasName("PK_Categories");
+            entity.Property(p => p.Name)
+                  .HasMaxLength(100)
+                  .IsRequired();
+            entity.Property(p => p.Slug)
+                  .HasMaxLength(200)
+                  .IsUnicode(false)        
+                  .IsRequired();
+            entity.Property(p => p.Description)
+                  .HasMaxLength(255);
+            entity.Property(p => p.IsActive)
+                  .HasDefaultValue(true);
+            entity.Property(p => p.DisplayOrder)
+                  .HasDefaultValue(0);
+            entity.Property(p => p.MetaTitle).HasMaxLength(150);
+            entity.Property(p => p.MetaDescription).HasMaxLength(300);
+            entity.Property(p => p.MetaKeywords).HasMaxLength(200);
+            entity.Property(p => p.CreatedBy).HasMaxLength(64);
+            entity.Property(p => p.UpdatedBy).HasMaxLength(64);
+            entity.Property(p => p.CreatedAt)
+                  .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(p => p.RowVersion)
+                  .IsRowVersion();          
+            entity.HasOne(p => p.Parent)
+                  .WithMany(p => p.Children)
+                  .HasForeignKey(p => p.ParentId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            // Global query filter: mặc định không trả soft-deleted
+            entity.HasQueryFilter(p => !p.IsDeleted);
+            // Indexes
+            entity.HasIndex(p => new { p.ParentId, p.DisplayOrder })
+                  .HasDatabaseName("IX_Categories_Parent_Display");
+            // Filtered UNIQUE index cho Slug (bỏ qua bản đã xóa mềm)
+            entity.HasIndex(p => p.Slug)
+                  .IsUnique()
+                  .HasFilter("[IsDeleted] = 0")
+                  .HasDatabaseName("UX_Categories_Slug");
+            // (Khuyến nghị) Không trùng tên trong cùng parent, cũng filtered
+            entity.HasIndex(p => new { p.ParentId, p.Name })
+                  .IsUnique()
+                  .HasFilter("[IsDeleted] = 0")
+                  .HasDatabaseName("UX_Categories_Parent_Name");
         });
 
         modelBuilder.Entity<Order>(entity =>

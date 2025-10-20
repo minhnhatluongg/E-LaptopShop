@@ -1,5 +1,6 @@
 ﻿using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Enums;
+using E_LaptopShop.Domain.Repositories.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Domain.Repositories
 {
-    public interface IInventoryRepository
+    public interface IInventoryRepository : IBaseRepository<Inventory>
     {
         //Basic CRUD operations
         Task<Inventory?> GetByIdAsync(int id);
@@ -18,8 +19,6 @@ namespace E_LaptopShop.Domain.Repositories
         Task<Inventory> AddAsync(Inventory inventory);
         Task<Inventory> UpdateAsync(Inventory inventory);
         Task<bool> DeleteAsync(int id);
-
-        IQueryable<Inventory> GetQueryable();
 
         IQueryable<Inventory> GetFilteredQueryable(int? id = null,
             int? productId = null,
@@ -32,7 +31,6 @@ namespace E_LaptopShop.Domain.Repositories
             string? location = null,
             InventoryStatus? status = null); 
         //Business Logic
-
         Task<bool> UpdateStockAsync(int productId, int quantity, InventoryTransactionType transactionType);
         Task<IEnumerable<Inventory>> GetLowStockItemsAsync();
         Task<IEnumerable<Inventory>> GetOutOfStockItemsAsync();
