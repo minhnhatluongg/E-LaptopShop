@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Application.Features.Categories.Commands.DeleteCategory
 {
-    public class DeleteCategoryCommand : IRequest<int>
+    public class DeleteCategoryCommand : IRequest<bool>
     {
         public int Id { get; set; }
     }

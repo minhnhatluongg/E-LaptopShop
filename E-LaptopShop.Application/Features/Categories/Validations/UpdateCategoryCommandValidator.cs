@@ -12,7 +12,7 @@ namespace E_LaptopShop.Application.Features.Categories.Validations
     {
         public UpdateCategoryCommandValidator()
         {
-            RuleFor(x => x.Name)
+            RuleFor(x => x.RequestDto.Name)
                 .NotEmpty().WithMessage("Name is required")
                 .MaximumLength(100).WithMessage("Name must not exceed 100 characters");
         }

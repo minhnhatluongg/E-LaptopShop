@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using E_LaptopShop.Application.Services.Interfaces;
 using E_LaptopShop.Domain.Repositories;
 using MediatR;
 using System;
@@ -11,22 +12,15 @@ namespace E_LaptopShop.Application.Features.Categories.Queries.GetCategoryById
 {
     public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery, CategoryDto>
     {
-        private readonly ICategoryRepository _categoryRepository;
-        private readonly IMapper _mapper;
+        private readonly ICategoryService _categoryService;
 
-        public GetCategoryByIdQueryHandler(ICategoryRepository categoryRepository, IMapper mapper)
+        public GetCategoryByIdQueryHandler(ICategoryService categoryService)
         {
-            _categoryRepository = categoryRepository;
-            _mapper = mapper;
+            _categoryService = categoryService;
         }
-        public async Task<CategoryDto> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
+        public Task<CategoryDto?> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
         {
-            var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken);
-            if (category == null)
-            {
-                throw new KeyNotFoundException($"Category with ID {request.Id} not found.");
-            }
-            return _mapper.Map<CategoryDto>(category);
+            return _categoryService.GetByIdAsync(request.Id, cancellationToken);
         }
     }
 }

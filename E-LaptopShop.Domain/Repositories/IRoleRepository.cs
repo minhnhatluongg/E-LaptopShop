@@ -1,4 +1,5 @@
 ﻿using E_LaptopShop.Domain.Entities;
+using E_LaptopShop.Domain.Repositories.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,14 +8,9 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Domain.Repositories
 {
-    public interface IRoleRepository
+    public interface IRoleRepository : IBaseRepository<Role>
     {
-        Task<IEnumerable<Role>> GetAllAsync(CancellationToken cancellationToken);
-        Task<Role> GetByIdAsync(int id, CancellationToken cancellationToken);
         Task<Role> GetByNameAsync(string name, CancellationToken cancellationToken);
-        Task<Role> AddAsync(Role role, CancellationToken cancellationToken);
-        Task<Role> UpdateAsync(Role role, CancellationToken cancellationToken);
-        Task<int> DeleteAsync(int id, CancellationToken cancellationToken);
         Task<Role> ChangeActiveAsync (int id, bool isActive, CancellationToken cancellationToken);
         Task<IEnumerable<Role>> GetFilteredAsync(int? id, string? name, bool? isActive, CancellationToken cancellationToken);
     }

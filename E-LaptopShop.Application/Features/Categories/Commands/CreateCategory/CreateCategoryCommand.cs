@@ -3,8 +3,8 @@ using E_LaptopShop.Application.DTOs;
 
 namespace E_LaptopShop.Application.Features.Categories.Commands.CreateCategory;
 
-public record CreateCategoryCommand : IRequest<CategoryDto>
+public sealed record CreateCategoryCommand()
+    : IRequest<CategoryDto>
 {
-    public string Name { get; init; } = null!;
-    public string? Description { get; init; }
-} 
+    public CategoryCreateRequestDto RequestDto { get; init; } = null!;
+}

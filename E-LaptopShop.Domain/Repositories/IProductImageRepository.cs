@@ -1,6 +1,7 @@
 ﻿using E_LaptopShop.Application.Common.Pagination_Sort_Filter;
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.FilterParams;
+using E_LaptopShop.Domain.Repositories.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,8 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Domain.Repositories
 {
-    public interface IProductImageRepository 
+    public interface IProductImageRepository : IBaseRepository<ProductImage>
     {
-        Task<ProductImage> GetByIdAsync(int id, CancellationToken cancellationToken);
-        Task<IEnumerable<ProductImage>> GetAllAsync(CancellationToken cancellationToken);
         Task<ProductImage> AddImageAsync(ProductImage productImage, CancellationToken cancellationToken);
         Task<ProductImage> UpdateImageAsync(ProductImage productImage, CancellationToken cancellationToken);
         Task<int> DeleteImageAsync(int id, CancellationToken cancellationToken);
