@@ -247,4 +247,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Seed database (chỉ tạo user nếu DB chưa có)
+await E_LaptopShop.Infra.Data.DbInitializer.SeedAsync(app.Services);
+
 app.Run();

@@ -1,6 +1,8 @@
 ﻿using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Infra.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class ShoppingCartRepository : IShoppingCartRepository
+    public class ShoppingCartRepository : BaseRepository<ShoppingCart>, IShoppingCartRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public ShoppingCartRepository(ApplicationDbContext context)
+        public ShoppingCartRepository(ApplicationDbContext context, ILogger<ShoppingCartRepository> logger) : base(context, logger)
         {
             _context = context;
         }

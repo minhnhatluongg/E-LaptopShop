@@ -18,9 +18,12 @@ namespace E_LaptopShop.Application.Features.Categories.Queries.GetCategoryById
         {
             _categoryService = categoryService;
         }
-        public Task<CategoryDto?> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
+        public async Task<CategoryDto> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
         {
-            return _categoryService.GetByIdAsync(request.Id, cancellationToken);
+            var dto = await _categoryService.GetByIdAsync(request.Id, cancellationToken);
+            if (dto is null)
+                throw new KeyNotFoundException($"Category with ID {request.Id} not found");
+            return dto;
         }
     }
 }

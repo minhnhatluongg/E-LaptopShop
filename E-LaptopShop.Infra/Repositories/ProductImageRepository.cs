@@ -10,15 +10,16 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using E_LaptopShop.Application.Common.Exceptions;
+using E_LaptopShop.Infra.Repositories.Base;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class ProductImageRepository : IProductImageRepository
+    public class ProductImageRepository : BaseRepository<ProductImage>, IProductImageRepository
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ProductImageRepository> _logger;
 
-        public ProductImageRepository(ApplicationDbContext context, ILogger<ProductImageRepository> logger)
+        public ProductImageRepository(ApplicationDbContext context, ILogger<ProductImageRepository> logger) : base(context, logger)
         {
             _context = context;
             _logger = logger;

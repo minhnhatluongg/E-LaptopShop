@@ -19,11 +19,13 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, P
         _logger = logger;
     }
 
-    public async Task<ProductDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         Throw.IfNullOrNonPositive(request.Id, nameof(request.Id));
         _logger.LogInformation("Handling GetProductByIdQuery - Id: {Id}", request.Id);
         var product = await _productService.GetProductByIdAsync(request.Id, cancellationToken);
+        if (product is null)
+            throw new KeyNotFoundException($"Product with ID {request.Id} not found");
         return product;
     }
 } 

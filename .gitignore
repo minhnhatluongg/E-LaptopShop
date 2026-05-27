@@ -362,17 +362,77 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Chỉ commit file mẫu
-E-LaptopShop/appsettings.json
-E-LaptopShop/appsettings.*.json
-!E-LaptopShop/appsettings.Example.json
+# ============================================================
+# AppSettings — Commit template, ignore environment overrides
+# ============================================================
+# Commit: appsettings.json (template — KHÔNG chứa secret)
+# Commit: appsettings.Example.json
+# Ignore: appsettings.Development.json, appsettings.Production.json,
+#         appsettings.*.Local.json (chứa secret thật của từng dev/môi trường)
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+**/appsettings.*.Local.json
+**/appsettings.local.json
 
-# File local riêng (không commit)
-E-LaptopShop/appsettings.Local.json
-E-LaptopShop/appsettings.*.local.json
+# ============================================================
+# Secrets — KHÔNG bao giờ commit
+# ============================================================
+# User Secrets (file local của dev, không nằm trong repo nhưng phòng hờ)
+**/secrets.json
+**/.secrets/
+*.pfx
+*.key
+*.pem
+*.env
+.env
+.env.*
+!.env.example
 
-# Thư mục upload (không commit)
-E-LaptopShop/uploads/
-E-LaptopShop/temp-uploads/
+# ============================================================
+# Uploads / runtime artifacts
+# ============================================================
+**/uploads/
+**/temp-uploads/
+**/wwwroot/uploads/
+
+# ============================================================
+# Editor / OS specific
+# ============================================================
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ============================================================
+# Logs & runtime
+# ============================================================
+*.log
+logs/
+LogFiles/
+
+# ============================================================
+# Local DB
+# ============================================================
+*.bacpac
+*.dacpac
+LocalDb/
+local.db
+*.sqlite
+*.sqlite-journal
 
 
+/Database

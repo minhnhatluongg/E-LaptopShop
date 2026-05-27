@@ -17,7 +17,8 @@ namespace E_LaptopShop.Application.Features.Roles.Command.DeleteRole
         }
         public async Task<int> Handle(DeleteRoleCommand request, CancellationToken cancellationToken)
         {
-            return await _roleRepository.DeleteAsync(request.Id, cancellationToken);
+            var ok = await _roleRepository.DeleteAsync(request.Id, cancellationToken);
+            return ok ? request.Id : 0;
         }
     }
 }

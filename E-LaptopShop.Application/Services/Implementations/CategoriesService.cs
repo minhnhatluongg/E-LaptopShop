@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using E_LaptopShop.Application.DTOs.QueryParams___forGetAll;
 using E_LaptopShop.Application.Services.Base;
 using E_LaptopShop.Application.Services.Interfaces;
@@ -20,7 +20,7 @@ namespace E_LaptopShop.Application.Services.Implementations
         private readonly ISlugGenerator _slugGenerator;
         public CategoriesService(
             IMapper mapper,
-            ILogger logger,
+            ILogger<CategoriesService> logger,
             ISlugGenerator slugGenerator,
             ICategoryRepository categoryRepository
             ) : base(mapper, logger)

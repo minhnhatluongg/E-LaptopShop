@@ -1,6 +1,7 @@
 ﻿using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Enums;
 using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Infra.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -11,12 +12,12 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class InventoryHistoryRepository : IInventoryHistoryRepository
+    public class InventoryHistoryRepository : BaseRepository<InventoryHistory>, IInventoryHistoryRepository
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<InventoryHistoryRepository> _logger;
 
-        public InventoryHistoryRepository(ApplicationDbContext context, ILogger<InventoryHistoryRepository> logger)
+        public InventoryHistoryRepository(ApplicationDbContext context, ILogger<InventoryHistoryRepository> logger) : base(context,logger)
         {
             _context = context;
             _logger = logger;

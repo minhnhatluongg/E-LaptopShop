@@ -2,7 +2,9 @@ using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Enums;
 using E_LaptopShop.Domain.Repositories;
 using E_LaptopShop.Infra;
+using E_LaptopShop.Infra.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,11 +13,11 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class OrderRepository : IOrderRepository
+    public class OrderRepository : BaseRepository<Order>, IOrderRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public OrderRepository(ApplicationDbContext context)
+        public OrderRepository(ApplicationDbContext context, ILogger<OrderRepository> logger) : base(context, logger)
         {
             _context = context;
         }

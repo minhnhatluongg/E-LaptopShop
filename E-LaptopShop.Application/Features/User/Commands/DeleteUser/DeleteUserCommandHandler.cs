@@ -19,7 +19,8 @@ namespace E_LaptopShop.Application.Features.User.Commands.DeleteUser
 
         public async Task<int> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
         {
-            return await _userRepository.DeleteAsync(request.Id, cancellationToken);
+            var ok = await _userRepository.DeleteAsync(request.Id, cancellationToken);
+            return ok ? request.Id : 0;
         }
     }
 }

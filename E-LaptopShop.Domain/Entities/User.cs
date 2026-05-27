@@ -1,98 +1,62 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace E_LaptopShop.Domain.Entities;
-
-[Index("Email", Name = "UQ__Users__A9D10534BCF0AE75", IsUnique = true)]
-[Index("RoleId", Name = "IX_Users_RoleId")]
-[Index("IsActive", Name = "IX_Users_IsActive")]
-[Index("LastLoginAt", Name = "IX_Users_LastLoginAt")]
-public partial class User
+namespace E_LaptopShop.Domain.Entities
 {
-    [Key]
-    public int Id { get; set; }
+    /// <summary>
+    /// POCO entity — no EF attributes. See
+    /// <c>Infra/Data/Configurations/UserConfiguration.cs</c>.
+    /// </summary>
+    public partial class User
+    {
+        public int Id { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
 
-    [StringLength(50)]
-    [Required]
-    public string FirstName { get; set; } = string.Empty;
+        public string? PasswordHash { get; set; }
+        public string? Phone { get; set; }
+        public string? AvatarUrl { get; set; }
+        public string? Token { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+        public DateTime? LastLoginAt { get; set; }
 
-    [StringLength(50)]
-    [Required]
-    public string LastName { get; set; } = string.Empty;
+        public int LoginAttempts { get; set; } = 0;
+        public bool IsLocked { get; set; } = false;
+        public DateTime? LockedUntil { get; set; }
 
-    [StringLength(100)]
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+        public int RoleId { get; set; }
 
-    [StringLength(255)]
-    public string? PasswordHash { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool EmailConfirmed { get; set; } = false;
+        public string? VerificationToken { get; set; }
 
-    [StringLength(20)]
-    public string? Phone { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
 
-    [StringLength(255)]
-    public string? AvatarUrl { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
-    [StringLength(255)]
-    public string? Token { get; set; }
+        // Computed (not mapped to DB)
+        public string FullName => $"{FirstName} {LastName}".Trim();
 
-    [StringLength(512)]
-    public string? RefreshToken { get; set; }
-
-    public DateTime? RefreshTokenExpiryTime { get; set; }
-
-    public DateTime? LastLoginAt { get; set; }
-
-    public int LoginAttempts { get; set; } = 0;
-
-    public bool IsLocked { get; set; } = false;
-
-    public DateTime? LockedUntil { get; set; }
-
-    [Required]
-    public int RoleId { get; set; }
-
-    public bool IsActive { get; set; } = true;
-
-    public bool EmailConfirmed { get; set; } = false;
-
-    [StringLength(100)]
-    public string? VerificationToken { get; set; }
-
-    [StringLength(50)]
-    public string? Gender { get; set; }
-
-    public DateTime? DateOfBirth { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    [Column(TypeName = "datetime")]
-    public DateTime? UpdatedAt { get; set; }
-
-    [StringLength(100)]
-    public string? CreatedBy { get; set; }
-
-    [StringLength(100)]
-    public string? UpdatedBy { get; set; }
-
-    [NotMapped]
-    public string FullName => $"{FirstName} {LastName}".Trim();
-
-    [InverseProperty("User")]
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-
-    [InverseProperty("User")]
-    public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
-
-    [ForeignKey("RoleId")]
-    [InverseProperty("Users")]
-    public virtual Role Role { get; set; } = null!;
-
-    [InverseProperty("User")]
-    public virtual ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
+        // Navigation
+        public virtual Role Role { get; set; } = null!;
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
+        public virtual ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
+        public virtual ICollection<ShoppingCart> ShoppingCarts { get; set; } = new List<ShoppingCart>();
+        public virtual ICollection<CouponUsage> CouponUsages { get; set; } = new List<CouponUsage>();
+        public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
+        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+        public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
+        public virtual UserLoyalty? Loyalty { get; set; }
+        public virtual ICollection<PointTransaction> PointTransactions { get; set; } = new List<PointTransaction>();
+        public virtual ICollection<ReturnRequest> ReturnRequests { get; set; } = new List<ReturnRequest>();
+        public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+    }
 }
