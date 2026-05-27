@@ -1,6 +1,8 @@
 ﻿using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Infra.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +11,10 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class RoleRepository : IRoleRepository
+    public class RoleRepository : BaseRepository<Role>, IRoleRepository
     {
         private readonly ApplicationDbContext _context;
-        public RoleRepository(ApplicationDbContext context)
+        public RoleRepository(ApplicationDbContext context, ILogger<RoleRepository> logger) : base(context, logger)
         {
             _context = context;
         }

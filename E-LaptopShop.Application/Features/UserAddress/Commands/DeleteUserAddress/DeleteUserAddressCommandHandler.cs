@@ -18,7 +18,8 @@ namespace E_LaptopShop.Application.Features.UserAddress.Commands.DeleteUserAddre
         }
         public async Task<int> Handle(DeleteUserAddressCommand request, CancellationToken cancellationToken)
         {
-            return await _userAddressRepository.DeleteAsync(request.Id, cancellationToken);
+            var ok = await _userAddressRepository.DeleteAsync(request.Id, cancellationToken);
+            return ok ? request.Id : 0;
         }
     }
 }

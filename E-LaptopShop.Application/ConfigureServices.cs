@@ -1,4 +1,4 @@
-﻿using E_LaptopShop.Application.Common.Behaviors;
+using E_LaptopShop.Application.Common.Behaviors;
 using E_LaptopShop.Application.Services;
 using E_LaptopShop.Application.Services.Implementations;
 using E_LaptopShop.Application.Services.Interfaces;
@@ -40,6 +40,7 @@ namespace E_LaptopShop.Application
             services.AddScoped<IProductImageService, ProductImageService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IBrandService, BrandService>();
+            services.AddScoped<ICategoryService, CategoriesService>();
 
             return services;
         }

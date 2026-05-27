@@ -2,8 +2,10 @@
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.FilterParams;
 using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Infra.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,11 +14,11 @@ using System.Threading.Tasks;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class UserAddressRepository : IUserAddressRepository
+    public class UserAddressRepository : BaseRepository<UserAddress>, IUserAddressRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public UserAddressRepository(ApplicationDbContext context)
+        public UserAddressRepository(ApplicationDbContext context, ILogger<UserAddressRepository> logger) : base(context, logger)
         {
             _context = context;
         }

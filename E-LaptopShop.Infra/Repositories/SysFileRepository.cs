@@ -18,23 +18,18 @@ namespace E_LaptopShop.Infra.Repositories
             _context = context;
         }
 
-        public async Task<SysFile> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<SysFile?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            var sysFile = await _context.SysFiles
+            return await _context.SysFiles
                 .AsNoTracking()
                 .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
-
-            if (sysFile == null)
-                throw new KeyNotFoundException($"SysFile with ID {id} not found");
-
-            return sysFile;
         }
 
-        public async Task<int> AddAsync(SysFile sysFile, CancellationToken cancellationToken = default)
+        public async Task<SysFile> AddAsync(SysFile sysFile, CancellationToken cancellationToken = default)
         {
             await _context.SysFiles.AddAsync(sysFile, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            return sysFile.Id;
+            return sysFile;
         }
 
         public async Task UpdateAsync(SysFile sysFile, CancellationToken cancellationToken = default)

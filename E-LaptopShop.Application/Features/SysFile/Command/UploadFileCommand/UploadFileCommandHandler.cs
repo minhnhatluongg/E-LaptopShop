@@ -51,7 +51,8 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadFileCommand
                 IsActive = true
             };
 
-            return await _sysFileRepository.AddAsync(sysFile, cancellationToken);
+            var saved = await _sysFileRepository.AddAsync(sysFile, cancellationToken);
+            return saved.Id;
         }
     }
 }

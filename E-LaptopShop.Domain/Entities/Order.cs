@@ -1,88 +1,49 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace E_LaptopShop.Domain.Entities;
-
-public partial class Order
+namespace E_LaptopShop.Domain.Entities
 {
-    [Key]
-    public int Id { get; set; }
+    /// <summary>
+    /// POCO entity — no EF attributes. See
+    /// <c>Infra/Data/Configurations/OrderConfiguration.cs</c>.
+    /// </summary>
+    public partial class Order
+    {
+        public int Id { get; set; }
+        public string OrderNumber { get; set; } = null!;
+        public int? UserId { get; set; }
+        public int? ShippingAddressId { get; set; }
+        public DateTime OrderDate { get; set; } = DateTime.Now;
+        public string Status { get; set; } = "Pending";
+        public decimal SubTotal { get; set; } = 0;
+        public decimal DiscountAmount { get; set; } = 0;
+        public string? DiscountCode { get; set; }
+        public decimal TaxAmount { get; set; } = 0;
+        public decimal ShippingFee { get; set; } = 0;
+        public decimal TotalAmount { get; set; }
 
-    [Required]
-    [StringLength(50)]
-    public string OrderNumber { get; set; } = null!;
+        public string? ShippingMethod { get; set; }
+        public string? PaymentMethod { get; set; }
+        public bool IsPaid { get; set; } = false;
+        public DateTime? PaidDate { get; set; }
 
-    public int? UserId { get; set; }
+        public string? Notes { get; set; }
 
-    public int? ShippingAddressId { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime OrderDate { get; set; } = DateTime.Now;
+        // Navigation
+        public virtual User? User { get; set; }
+        public virtual UserAddress? ShippingAddress { get; set; }
 
-    [StringLength(50)]
-    public string Status { get; set; } = "Pending";
-
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal SubTotal { get; set; } = 0;
-
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal DiscountAmount { get; set; } = 0;
-
-    [StringLength(100)]
-    public string? DiscountCode { get; set; }
-
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal TaxAmount { get; set; } = 0;
-
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal ShippingFee { get; set; } = 0;
-
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal TotalAmount { get; set; }
-
-    [StringLength(50)]
-    public string? ShippingMethod { get; set; }
-
-    [StringLength(50)]
-    public string? PaymentMethod { get; set; }
-
-    public bool IsPaid { get; set; } = false;
-
-    [Column(TypeName = "datetime")]
-    public DateTime? PaidDate { get; set; }
-
-    [StringLength(1000)]
-    public string? Notes { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    [Column(TypeName = "datetime")]
-    public DateTime? UpdatedAt { get; set; }
-
-    [StringLength(100)]
-    public string? CreatedBy { get; set; }
-
-    [StringLength(100)]
-    public string? UpdatedBy { get; set; }
-
-    // Navigation properties
-    [InverseProperty("Order")]
-    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
-
-    [InverseProperty("Order")]
-    public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
-
-    [InverseProperty("Order")]
-    public virtual ICollection<OrderHistory> OrderHistories { get; set; } = new List<OrderHistory>();
-
-    [ForeignKey("UserId")]
-    [InverseProperty("Orders")]
-    public virtual User? User { get; set; }
-
-    [ForeignKey("ShippingAddressId")]
-    public virtual UserAddress? ShippingAddress { get; set; }
+        public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
+        public virtual ICollection<OrderHistory> OrderHistories { get; set; } = new List<OrderHistory>();
+        public virtual ICollection<CouponUsage> CouponUsages { get; set; } = new List<CouponUsage>();
+        public virtual ICollection<PointTransaction> PointTransactions { get; set; } = new List<PointTransaction>();
+        public virtual ICollection<ReturnRequest> ReturnRequests { get; set; } = new List<ReturnRequest>();
+        public virtual ICollection<RefundTransaction> RefundTransactions { get; set; } = new List<RefundTransaction>();
+    }
 }

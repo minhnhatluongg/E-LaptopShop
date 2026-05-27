@@ -6,14 +6,16 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Repositories;
+using Microsoft.Extensions.Logging;
+using E_LaptopShop.Infra.Repositories.Base;
 
 namespace E_LaptopShop.Infra.Repositories;
 
-public class ProductRepository : IProductRepository
+public class ProductRepository : BaseRepository<Product>, IProductRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public ProductRepository(ApplicationDbContext context)
+    public ProductRepository(ApplicationDbContext context, ILogger<ProductRepository> logger) : base(context, logger)
     {
         _context = context;
     }

@@ -17,7 +17,7 @@ namespace E_LaptopShop.Application.Features.Brands.Commands.CreateBrand
 
         public CreateBrandCommandHandler(IBrandService brandService, ILogger<CreateBrandCommandHandler> logger)
         {
-            brandService = _brandService;
+            _brandService = brandService;
             _logger = logger;
         }
         public async Task<BrandDto> Handle(CreateBrandCommand request, CancellationToken cancellationToken)

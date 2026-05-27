@@ -1,57 +1,50 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace E_LaptopShop.Domain.Entities;
-
-public partial class Category
+namespace E_LaptopShop.Domain.Entities
 {
-    [Key]
-    public int Id { get; set; }
+    /// <summary>
+    /// POCO entity — no EF attributes. See
+    /// <c>Infra/Data/Configurations/CategoryConfiguration.cs</c>.
+    /// </summary>
+    public partial class Category
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string Slug { get; set; } = null!;
+        public string? Description { get; set; }
 
-    [Required, StringLength(100)]
-    public string Name { get; set; } = null!;
+        // Hierarchy
+        public int? ParentId { get; set; }
+        public Category? Parent { get; set; }
+        public ICollection<Category> Children { get; set; } = new List<Category>();
 
-    [Required, StringLength(150)]
-    public string Slug { get; set; } = null!;
+        // Display / Status
+        public bool IsActive { get; set; } = true;
+        public int DisplayOrder { get; set; } = 0;
 
-    [StringLength(255)]
-    public string? Description { get; set; }
+        // Media
+        public long? ImageFileId { get; set; }
 
-    // --- Hierarchy ---
-    public int? ParentId { get; set; }
-    public Category? Parent { get; set; }
-    public ICollection<Category> Children { get; set; } = new List<Category>();
+        // SEO
+        public string? MetaTitle { get; set; }
+        public string? MetaDescription { get; set; }
+        public string? MetaKeywords { get; set; }
 
-    // --- Display / Status ---
-    public bool IsActive { get; set; } = true;
-    public int DisplayOrder { get; set; } = 0;
+        // Audit
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
-    // --- Media (optional) ---
-    public long? ImageFileId { get; set; }
-    // public SysFile? ImageFile { get; set; } // nếu có bảng file riêng
+        // Soft delete
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
 
-    // --- SEO (optional) ---
-    [StringLength(150)] public string? MetaTitle { get; set; }
-    [StringLength(300)] public string? MetaDescription { get; set; }
-    [StringLength(200)] public string? MetaKeywords { get; set; }
+        // Concurrency token
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-    // --- Audit ---
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
-    [StringLength(64)] public string? CreatedBy { get; set; }
-    [StringLength(64)] public string? UpdatedBy { get; set; }
-
-    // --- Soft delete ---
-    public bool IsDeleted { get; set; } = false;
-    public DateTime? DeletedAt { get; set; }
-
-    // --- Concurrency ---
-    [Timestamp] public byte[] RowVersion { get; set; } = Array.Empty<byte>();
-
-    // --- Products ---
-    [InverseProperty(nameof(Product.Category))]
-    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        // Products belonging to this category
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+    }
 }

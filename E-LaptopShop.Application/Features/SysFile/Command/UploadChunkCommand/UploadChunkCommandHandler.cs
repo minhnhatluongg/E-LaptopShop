@@ -92,12 +92,12 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadChunkCommand
                     IsActive = true
                 };
 
-                var sysFileId = await _sysFileRepository.AddAsync(sysFile, cancellationToken);
+                var savedSysFile = await _sysFileRepository.AddAsync(sysFile, cancellationToken);
                 return new ChunkUploadResult
                 {
                     IsCompleted = true,
-                    SysFileId = sysFileId,
-                    FileUrl = sysFile.FileUrl
+                    SysFileId = savedSysFile.Id,
+                    FileUrl = savedSysFile.FileUrl
                 };
             }
             catch (Exception ex)

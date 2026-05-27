@@ -10,11 +10,11 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadChunkCommand
 {
     public class UploadChunkCommand : IRequest<ChunkUploadResult>
     {
-        public IFormFile Chunk { get; set; }
-        public string FileName { get; set; }
+        public IFormFile Chunk { get; set; } = null!;
+        public string FileName { get; set; } = null!;
         public int ChunkNumber { get; set; }
         public int TotalChunks { get; set; }
-        public string UploadedBy { get; set; }
+        public string UploadedBy { get; set; } = null!;
     }
 
     public class ChunkUploadResult

@@ -2,6 +2,7 @@
 using E_LaptopShop.Domain.Enums;
 using E_LaptopShop.Domain.FilterParams;
 using E_LaptopShop.Domain.Repositories;
+using E_LaptopShop.Infra.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -13,12 +14,12 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace E_LaptopShop.Infra.Repositories
 {
-    public class InventoryRepository : IInventoryRepository
+    public class InventoryRepository : BaseRepository<Inventory>, IInventoryRepository
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<InventoryRepository> _logger;
 
-        public InventoryRepository(ApplicationDbContext context, ILogger<InventoryRepository> logger)
+        public InventoryRepository(ApplicationDbContext context, ILogger<InventoryRepository> logger) : base(context, logger)
         {
             _context = context;
             _logger = logger;

@@ -16,6 +16,7 @@ public class DeleteProductSpecificationCommandHandler : IRequestHandler<DeletePr
 
     public async Task<int> Handle(DeleteProductSpecificationCommand request, CancellationToken cancellationToken)
     {
-        return await _repository.DeleteAsync(request.Id, cancellationToken);
+        var ok = await _repository.DeleteAsync(request.Id, cancellationToken);
+        return ok ? request.Id : 0;
     }
 } 

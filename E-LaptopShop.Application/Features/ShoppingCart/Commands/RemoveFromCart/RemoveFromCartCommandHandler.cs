@@ -36,9 +36,9 @@ namespace E_LaptopShop.Application.Features.ShoppingCart.Commands.RemoveFromCart
             }
 
             var cartId = cartItem.ShoppingCartId;
-            var result = await _cartItemRepository.DeleteAsync(request.ItemId, cancellationToken);
+            var deleted = await _cartItemRepository.DeleteAsync(request.ItemId, cancellationToken);
 
-            if (result > 0)
+            if (deleted)
             {
                 // Cập nhật tổng tiền của cart
                 await UpdateCartTotal(cartId, cancellationToken);

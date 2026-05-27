@@ -10,7 +10,7 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadFileCommand
 {
     public class UploadFileCommand : IRequest<int>
     {
-        public IFormFile File { get; set; }
-        public string UploadedBy { get; set; }
+        public IFormFile File { get; set; } = null!;
+        public string UploadedBy { get; set; } = null!;
     }
 }
