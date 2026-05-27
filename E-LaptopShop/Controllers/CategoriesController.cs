@@ -12,11 +12,11 @@ using E_LaptopShop.Application.Features.Categories.Queries.GetCategoryById;
 using E_LaptopShop.Application.Features.Categories.Queries.GetAllCategories;
 using E_LaptopShop.Application.Common.Pagination;
 
+using E_LaptopShop.Helpers;
+
 namespace E_LaptopShop.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class CategoriesController : ControllerBase
+public class CategoriesController : ApiV1ControllerBase
 {
     private readonly IMediator _mediator;
     private const string EntityName = "Category";
@@ -30,7 +30,7 @@ public class CategoriesController : ControllerBase
     /// 🔓 [PUBLIC] Lấy tất cả danh mục (có hỗ trợ lọc và phân trang)
     /// </summary>
     [HttpGet]
-    [Tags("🔓 Public")]
+    [Tags(ApiTags.Public)]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<CategoryDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PagedResult<CategoryDto>>>> GetAll(
         [FromQuery] GetAllCategoriesQuery query,
@@ -44,7 +44,7 @@ public class CategoriesController : ControllerBase
     /// 🔓 [PUBLIC] Lấy chi tiết danh mục theo ID
     /// </summary>
     [HttpGet("{id:int}")]
-    [Tags("🔓 Public")]
+    [Tags(ApiTags.Public)]
     [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> GetById(int id, CancellationToken ct)
@@ -57,8 +57,8 @@ public class CategoriesController : ControllerBase
     /// 👑 [ADMIN] Tạo danh mục mới
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
-    [Tags("👑 Admin")]
+    [AdminOrManager]
+    [Tags(ApiTags.Admin)]
     [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Create(
         [FromBody] CreateCategoryCommand command,
@@ -75,8 +75,8 @@ public class CategoriesController : ControllerBase
     /// 👑 [ADMIN] Cập nhật danh mục
     /// </summary>
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Manager")]
-    [Tags("👑 Admin")]
+    [AdminOrManager]
+    [Tags(ApiTags.Admin)]
     [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> Update(
@@ -93,8 +93,8 @@ public class CategoriesController : ControllerBase
     /// 👑 [ADMIN] Xóa danh mục
     /// </summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
-    [Tags("👑 Admin")]
+    [AdminOnly]
+    [Tags(ApiTags.Admin)]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken ct)

@@ -11,11 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using E_LaptopShop.Helpers;
+
 namespace E_LaptopShop.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class ProductSpecificationsController : ControllerBase
+public class ProductSpecificationsController : ApiV1ControllerBase
 {
     private readonly IMediator _mediator;
     public string EntityName => "ProductSpecification";
@@ -29,7 +29,7 @@ public class ProductSpecificationsController : ControllerBase
     /// 🔓 [PUBLIC] Lấy tất cả spec sản phẩm - Dành cho catalog
     /// </summary>
     [HttpGet("GetAllSpecifications")]
-    [Tags("🔓 Public")]
+    [Tags(ApiTags.Public)]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProductSpecificationDto>>>> GetAll([FromQuery] GetAllProductSpecificationsQuery query)
     {
         var specs = await _mediator.Send(query);
@@ -40,7 +40,7 @@ public class ProductSpecificationsController : ControllerBase
     /// 🔓 [PUBLIC] Lấy chi tiết spec sản phẩm - Dành cho catalog
     /// </summary>
     [HttpGet("GetSpecificationById/{id}")]
-    [Tags("🔓 Public")]
+    [Tags(ApiTags.Public)]
     public async Task<ActionResult<ApiResponse<ProductSpecificationDto>>> GetById(int id)
     {
         var spec = await _mediator.Send(new GetProductSpecificationByIdQuery { Id = id });
@@ -51,8 +51,8 @@ public class ProductSpecificationsController : ControllerBase
     /// 👑 [ADMIN] Tạo spec sản phẩm mới
     /// </summary>
     [HttpPost("CreateSpecification")]
-    [Authorize(Roles = "Admin,Manager")]
-    [Tags("👑 Admin")]
+    [AdminOrManager]
+    [Tags(ApiTags.Admin)]
     public async Task<ActionResult<ApiResponse<ProductSpecificationDto>>> Create([FromBody] CreateProductSpecificationCommand command)
     {
         var spec = await _mediator.Send(command);
@@ -66,8 +66,8 @@ public class ProductSpecificationsController : ControllerBase
     /// 👑 [ADMIN] Cập nhật spec sản phẩm
     /// </summary>
     [HttpPut("UpdateSpecification/{id}")]
-    [Authorize(Roles = "Admin,Manager")]
-    [Tags("👑 Admin")]
+    [AdminOrManager]
+    [Tags(ApiTags.Admin)]
     public async Task<ActionResult<ApiResponse<ProductSpecificationDto>>> Update(int id, [FromBody] UpdateProductSpecificationCommand command)
     {
         if (id != command.Id)
@@ -81,8 +81,8 @@ public class ProductSpecificationsController : ControllerBase
     /// 👑 [ADMIN] Xóa spec sản phẩm
     /// </summary>
     [HttpDelete("DeleteSpecification/{id}")]
-    [Authorize(Roles = "Admin")]
-    [Tags("👑 Admin")]
+    [AdminOnly]
+    [Tags(ApiTags.Admin)]
     public async Task<ActionResult<ApiResponse<int>>> Delete(int id)
     {
         var result = await _mediator.Send(new DeleteProductSpecificationCommand { Id = id });

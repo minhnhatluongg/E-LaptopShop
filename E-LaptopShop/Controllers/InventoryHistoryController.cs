@@ -3,17 +3,16 @@ using E_LaptopShop.Application.Common.Pagination;
 using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Application.Features.InventoryHistory.Queries.GetInventoryHistory;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_LaptopShop.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize] // Require authentication
-    [Tags("📊 Inventory History")]
-    public class InventoryHistoryController : ControllerBase
+    [Authorize]
+    [Tags(ApiTags.InventoryHistory)]
+    public class InventoryHistoryController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
 
@@ -28,7 +27,7 @@ namespace E_LaptopShop.Controllers
         /// <param name="request">Filter, search, sort, and pagination parameters</param>
         /// <returns>Paginated inventory history records</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin,Manager,Warehouse")]
+        [AdminManagerOrWarehouse]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<InventoryHistoryDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -53,7 +52,7 @@ namespace E_LaptopShop.Controllers
         /// <param name="pageSize">Page size (default: 10, max: 50)</param>
         /// <returns>Paginated inventory history for the product</returns>
         [HttpGet("product/{productId:int}")]
-        [Authorize(Roles = "Admin,Manager,Warehouse")]
+        [AdminManagerOrWarehouse]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<InventoryHistoryDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResult<InventoryHistoryDto>>>> GetProductHistory(
             int productId,
@@ -89,7 +88,7 @@ namespace E_LaptopShop.Controllers
         /// <param name="pageSize">Page size (default: 10, max: 50)</param>
         /// <returns>Paginated inventory history by transaction type</returns>
         [HttpGet("transaction/{transactionType}")]
-        [Authorize(Roles = "Admin,Manager,Warehouse")]
+        [AdminManagerOrWarehouse]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<InventoryHistoryDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<PagedResult<InventoryHistoryDto>>>> GetByTransactionType(
             string transactionType,

@@ -8,15 +8,15 @@ using E_LaptopShop.Application.Features.Brands.Queries.GetActiveBrandsQuery;
 using E_LaptopShop.Application.Features.Brands.Queries.GetAllBrandsQuery;
 using E_LaptopShop.Application.Features.Brands.Queries.GetBrandById;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Controllers;
+using E_LaptopShop.Helpers;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_LaptopShop.Api.Controllers
 {
-    [ApiController]
-    [Route("api/brands")]
-    public class BrandsController : ControllerBase
+    [Route("api/v1/brands")]
+    public class BrandsController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
         public const string EntityName = "Brand";
@@ -27,7 +27,7 @@ namespace E_LaptopShop.Api.Controllers
         }
 
         [HttpGet]
-        [Tags("🔓 Public")]
+        [Tags(ApiTags.Public)]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<BrandDto>>), 200)]
         [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         public async Task<ActionResult<ApiResponse<PagedResult<BrandDto>>>> GetAll([FromQuery] BrandQueryParams queryParams)
@@ -40,7 +40,7 @@ namespace E_LaptopShop.Api.Controllers
 
 
         [HttpGet("active")]
-        [Tags("🔓 Public")]
+        [Tags(ApiTags.Public)]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<BrandDto>>), 200)]
         public async Task<IActionResult> GetActiveBrands()
         {
@@ -50,7 +50,7 @@ namespace E_LaptopShop.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        [Tags("🔓 Public")]
+        [Tags(ApiTags.Public)]
         [ProducesResponseType(typeof(ApiResponse<BrandDto>), 200)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<ApiResponse<ProductDto>>> GetById(int id)
@@ -60,8 +60,8 @@ namespace E_LaptopShop.Api.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Manager")]
-        [Tags("👑 Admin")]
+        [AdminOrManager]
+        [Tags(ApiTags.Admin)]
         [ProducesResponseType(typeof(ApiResponse<BrandDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         public async Task<ActionResult<ApiResponse<ProductDto>>> Create([FromBody] CreateBrandRequestDto requestDto)
@@ -76,8 +76,8 @@ namespace E_LaptopShop.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Manager")]
-        [Tags("👑 Admin")]
+        [AdminOrManager]
+        [Tags(ApiTags.Admin)]
         [ProducesResponseType(typeof(ApiResponse<BrandDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         [ProducesResponseType(404)]
@@ -95,8 +95,8 @@ namespace E_LaptopShop.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        [Tags("👑 Admin")]
+        [AdminOnly]
+        [Tags(ApiTags.Admin)]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<ApiResponse<int>>> Delete(int id)

@@ -6,6 +6,7 @@ using E_LaptopShop.Application.Features.ShoppingCart.Commands.UpdateCartItem;
 using E_LaptopShop.Application.Features.ShoppingCart.Queries.GetCart;
 using E_LaptopShop.Application.Features.ShoppingCart.Queries.GetCartSummary;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +14,9 @@ using System.Security.Claims;
 
 namespace E_LaptopShop.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize] // 🔐 Require JWT authentication for all shopping cart operations
-    [Tags("👤 Customer")]
-    public class ShoppingCartController : ControllerBase
+    [Authorize]
+    [Tags(ApiTags.Customer)]
+    public class ShoppingCartController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
 
