@@ -12,11 +12,11 @@ using E_LaptopShop.Application.Features.Products.Queries.GetProductById;
 using E_LaptopShop.Application.Features.Products.Queries.GetAllProducts;
 using E_LaptopShop.Application.Common.Pagination;
 
+using E_LaptopShop.Helpers;
+
 namespace E_LaptopShop.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController : ControllerBase
+public class ProductsController : ApiV1ControllerBase
 {
     private readonly IMediator _mediator;
     public string EntityName = "Product";
@@ -30,7 +30,7 @@ public class ProductsController : ControllerBase
     /// 🔓 [PUBLIC] Lấy tất cả sản phẩm - Dành cho catalog
     /// </summary>
     [HttpGet("GetAllProducts")]
-    [Tags("🔓 Public")]
+    [Tags(ApiTags.Public)]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProductDto>>>> GetAll([FromQuery] GetAllProductsQuery query)
     {
         var products = await _mediator.Send(query);
@@ -41,7 +41,7 @@ public class ProductsController : ControllerBase
     /// 🔓 [PUBLIC] Lấy chi tiết sản phẩm - Dành cho catalog
     /// </summary>
     [HttpGet("GetProductById/{id}")]
-    [Tags("🔓 Public")]
+    [Tags(ApiTags.Public)]
     public async Task<ActionResult<ApiResponse<ProductDto>>> GetById(int id)
     {
         var product = await _mediator.Send(new GetProductByIdQuery { Id = id });
@@ -52,8 +52,8 @@ public class ProductsController : ControllerBase
     /// 👑 [ADMIN] Tạo sản phẩm mới
     /// </summary>
     [HttpPost("CreateProduct")]
-    [Authorize(Roles = "Admin,Manager")]
-    [Tags("👑 Admin")]
+    [AdminOrManager]
+    [Tags(ApiTags.Admin)]
     public async Task<ActionResult<ApiResponse<ProductDto>>> Create([FromBody] CreateProductRequestDto requestDto)
     {
         var command = new CreateProductCommand(requestDto);
@@ -68,8 +68,8 @@ public class ProductsController : ControllerBase
     /// 👑 [ADMIN] Cập nhật sản phẩm
     /// </summary>
     [HttpPut("UpdateProduct/{id}")]
-    [Authorize(Roles = "Admin,Manager")]
-    [Tags("👑 Admin")]
+    [AdminOrManager]
+    [Tags(ApiTags.Admin)]
     public async Task<ActionResult<ApiResponse<ProductDto>>> Update(int id, [FromBody] UpdateProductRequestDto requestDto)
     {
         if (id != requestDto.Id)
@@ -86,8 +86,8 @@ public class ProductsController : ControllerBase
     /// 👑 [ADMIN] Xóa sản phẩm
     /// </summary>
     [HttpDelete("DeleteProduct/{id}")]
-    [Authorize(Roles = "Admin")]
-    [Tags("👑 Admin")]
+    [AdminOnly]
+    [Tags(ApiTags.Admin)]
     public async Task<ActionResult<ApiResponse<int>>> Delete(int id)
     {
         var command = new DeleteProductCommand { Id = id };

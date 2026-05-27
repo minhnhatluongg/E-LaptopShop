@@ -9,11 +9,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using E_LaptopShop.Helpers;
+
 namespace E_LaptopShop.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
         private readonly ILogger<AuthController> _logger;
@@ -30,7 +30,7 @@ namespace E_LaptopShop.Controllers
         /// <param name="request">Thông tin đăng nhập</param>
         /// <returns>JWT tokens và thông tin user</returns>
         [HttpPost("login")]
-        [Tags("🔐 Authentication")]
+        [Tags(ApiTags.Authentication)]
         [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         [ProducesResponseType(typeof(ApiResponse<object>), 401)]
@@ -80,7 +80,7 @@ namespace E_LaptopShop.Controllers
         /// <param name="request">Thông tin đăng ký</param>
         /// <returns>JWT tokens và thông tin user mới</returns>
         [HttpPost("register")]
-        [Tags("🔐 Authentication")]
+        [Tags(ApiTags.Authentication)]
         [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] RegisterRequestDto request)
@@ -133,7 +133,7 @@ namespace E_LaptopShop.Controllers
         /// <param name="request">Refresh token (hoặc từ cookie)</param>
         /// <returns>New JWT tokens</returns>
         [HttpPost("refresh-token")]
-        [Tags("🔐 Authentication")]
+        [Tags(ApiTags.Authentication)]
         [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<object>), 401)]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RefreshToken([FromBody] RefreshTokenRequestDto? request = null)
@@ -189,7 +189,7 @@ namespace E_LaptopShop.Controllers
         /// <returns>Logout status</returns>
         [HttpPost("logout")]
         [Authorize]
-        [Tags("👤 Customer")]
+        [Tags(ApiTags.Customer)]
         [ProducesResponseType(typeof(ApiResponse<object>), 200)]
         public async Task<ActionResult<ApiResponse<object>>> Logout()
         {
@@ -224,7 +224,7 @@ namespace E_LaptopShop.Controllers
         /// <returns>User information</returns>
         [HttpGet("me")]
         [Authorize]
-        [Tags("👤 Customer")]
+        [Tags(ApiTags.Customer)]
         [ProducesResponseType(typeof(ApiResponse<UserInfoDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<object>), 401)]
         public async Task<ActionResult<ApiResponse<UserInfoDto>>> GetCurrentUser()
@@ -255,7 +255,7 @@ namespace E_LaptopShop.Controllers
         /// <returns>Revoke status</returns>
         [HttpPost("revoke-all-tokens")]
         [Authorize]
-        [Tags("👤 Customer")]
+        [Tags(ApiTags.Customer)]
         [ProducesResponseType(typeof(ApiResponse<object>), 200)]
         public async Task<ActionResult<ApiResponse<object>>> RevokeAllTokens()
         {

@@ -46,7 +46,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below."
+        Description = "Nhập JWT token (KHÔNG cần gõ 'Bearer '). Swagger tự thêm prefix. Ví dụ: eyJhbGci..."
     });
 
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
@@ -122,7 +122,12 @@ builder.Services.AddAuthentication(options =>
             context.HandleResponse();
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
-            var result = System.Text.Json.JsonSerializer.Serialize(new { message = "You are not authorized" });
+
+            string message = context.AuthenticateFailure is not null
+                ? "Token không hợp lệ hoặc đã hết hạn"
+                : "Chưa xác thực — vui lòng đăng nhập";
+
+            var result = System.Text.Json.JsonSerializer.Serialize(new { message });
             return context.Response.WriteAsync(result);
         },
         OnForbidden = context =>

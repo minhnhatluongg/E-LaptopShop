@@ -7,11 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
 
+using E_LaptopShop.Helpers;
+
 namespace E_LaptopShop.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class FileController : ControllerBase
+    public class FileController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
         private readonly IHostEnvironment _hostEnvironment;
@@ -27,7 +27,7 @@ namespace E_LaptopShop.Controllers
         /// </summary>
         [HttpPost("upload-chunk")]
         [Authorize] // Customers can upload files
-        [Tags("👤 Customer")]
+        [Tags(ApiTags.Customer)]
         public async Task<ActionResult<ApiResponse<ChunkUploadResponseDto>>> UploadChunk(
                 IFormFile chunk, 
                 [FromForm] string fileName,
@@ -72,7 +72,7 @@ namespace E_LaptopShop.Controllers
         /// </summary>
         [HttpGet("validate-chunk")]
         [Authorize]
-        [Tags("👤 Customer")]
+        [Tags(ApiTags.Customer)]
         public ActionResult<ApiResponse<ChunkValidationResponseDto>> ValidateChunk(string fileName, int chunkNumber)
         {
             try

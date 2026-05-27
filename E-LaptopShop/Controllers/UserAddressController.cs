@@ -19,10 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace E_LaptopShop.Controllers
 {
-
-    [Route("api/[controller]")]
-    [ApiController]
-    public class UserAddressController : ControllerBase
+    public class UserAddressController : ApiV1ControllerBase
     {
         private readonly ILogger<UserAddressController> _logger;
         private readonly IMediator _mediator;

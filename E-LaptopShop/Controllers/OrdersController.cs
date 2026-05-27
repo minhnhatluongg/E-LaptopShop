@@ -6,6 +6,7 @@ using E_LaptopShop.Application.Features.Orders.Queries.GetOrderById;
 using E_LaptopShop.Application.Features.Orders.Queries.GetOrders;
 using E_LaptopShop.Application.Models;
 using E_LaptopShop.Domain.Enums;
+using E_LaptopShop.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +14,8 @@ using System.Security.Claims;
 
 namespace E_LaptopShop.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize] // Require authentication for all order operations
-    public class OrdersController : ControllerBase
+    [Authorize]
+    public class OrdersController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
 
@@ -152,7 +151,7 @@ namespace E_LaptopShop.Controllers
         /// [ADMIN] Lấy tất cả đơn hàng với filter
         /// </summary>
         [HttpGet("admin/all")]
-        [Authorize(Roles = "Admin")] // Require admin role
+        [AdminOnly]
         public async Task<ActionResult<ApiResponse<IEnumerable<OrderSummaryDto>>>> GetAllOrders(
             [FromQuery] OrderStatus? status = null,
             [FromQuery] DateTime? fromDate = null,
@@ -187,7 +186,7 @@ namespace E_LaptopShop.Controllers
         /// [ADMIN] Cập nhật trạng thái đơn hàng
         /// </summary>
         [HttpPut("admin/{orderId}/status")]
-        [Authorize(Roles = "Admin")]
+        [AdminOnly]
         public async Task<ActionResult<ApiResponse<OrderDto>>> UpdateOrderStatus(int orderId, [FromBody] UpdateOrderStatusRequest request)
         {
             try
@@ -224,7 +223,7 @@ namespace E_LaptopShop.Controllers
         /// [ADMIN] Hủy đơn hàng (admin có thể hủy ở nhiều trạng thái hơn)
         /// </summary>
         [HttpPost("admin/{orderId}/cancel")]
-        [Authorize(Roles = "Admin")]
+        [AdminOnly]
         public async Task<ActionResult<ApiResponse<OrderDto>>> AdminCancelOrder(int orderId, [FromBody] CancelOrderRequest request)
         {
             try
@@ -258,7 +257,7 @@ namespace E_LaptopShop.Controllers
         /// [ADMIN] Lấy chi tiết đơn hàng (admin có thể xem mọi đơn)
         /// </summary>
         [HttpGet("admin/{orderId}")]
-        [Authorize(Roles = "Admin")]
+        [AdminOnly]
         public async Task<ActionResult<ApiResponse<OrderDto>>> AdminGetOrderById(int orderId)
         {
             try

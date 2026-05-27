@@ -27,7 +27,7 @@ namespace E_LaptopShop.Infra.Repositories
                 {
                     throw new ArgumentNullException(nameof(role), "Role cannot be null");
                 }
-                role.IsActive = true; 
+                role.IsActive = true;
                 if (string.IsNullOrWhiteSpace(role.Name))
                 {
                     throw new ArgumentException("Role name cannot be null or empty", nameof(role.Name));
@@ -40,7 +40,6 @@ namespace E_LaptopShop.Infra.Repositories
             {
                 throw new InvalidOperationException("Error adding role", ex);
             }
-
         }
 
         public async Task<Role> ChangeActiveAsync(int id, bool isActive, CancellationToken cancellationToken)
@@ -73,7 +72,7 @@ namespace E_LaptopShop.Infra.Repositories
 
         public async Task<int> DeleteAsync(int id, CancellationToken cancellationToken)
         {
-            if(id <= 0)
+            if (id <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(id), "ID must be greater than zero");
             }
@@ -120,11 +119,11 @@ namespace E_LaptopShop.Infra.Repositories
                     query = query.Where(r => r.IsActive == isActive);
 
                 var result = await query.ToListAsync(cancellationToken);
-                
+
                 // Log the SQL query and results for debugging
                 System.Diagnostics.Debug.WriteLine($"Filter parameters - Id: {id}, Name: {name}, IsActive: {isActive}");
                 System.Diagnostics.Debug.WriteLine($"Found {result.Count()} results");
-                
+
                 return result;
             }
             catch (Exception ex)
@@ -135,21 +134,27 @@ namespace E_LaptopShop.Infra.Repositories
 
         public async Task<Role> GetByIdAsync(int id, CancellationToken cancellationToken)
         {
+            if (id <= 0)
+                throw new ArgumentException("ID must be greater than zero", nameof(id));
+
             try
             {
-               if(id <= 0)
-                    throw new ArgumentException("ID must be greater than zero", nameof(id));
-
-               var role = await _context.Roles
+                var role = await _context.Roles
                     .AsNoTracking()
                     .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
                 if (role == null)
                     throw new KeyNotFoundException($"Role with ID {id} not found");
+
                 return role;
+            }
+            catch (KeyNotFoundException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Error retrieving role with ID {id}", ex);
+                throw new InvalidOperationException($"Database error retrieving role with ID {id}", ex);
             }
         }
 
@@ -163,10 +168,10 @@ namespace E_LaptopShop.Infra.Repositories
                 var role = await _context.Roles
                     .AsNoTracking()
                     .FirstOrDefaultAsync(r => r.Name.ToLower() == name.ToLower(), cancellationToken);
-                
+
                 if (role == null)
                     throw new KeyNotFoundException($"Role with name '{name}' not found");
-                
+
                 return role;
             }
             catch (KeyNotFoundException)
@@ -187,12 +192,12 @@ namespace E_LaptopShop.Infra.Repositories
                 {
                     throw new ArgumentNullException(nameof(role), "Role cannot be null");
                 }
-                if(role.Id <= 0)
+                if (role.Id <= 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(role.Id), "ID must be greater than zero");
                 }
 
-                var existingRole = await _context.Roles.FindAsync(role.Id,cancellationToken);
+                var existingRole = await _context.Roles.FindAsync(role.Id, cancellationToken);
                 if (existingRole == null)
                 {
                     throw new InvalidOperationException($"Role with ID {role.Id} not found");

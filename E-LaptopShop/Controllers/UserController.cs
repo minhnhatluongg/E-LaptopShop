@@ -10,17 +10,15 @@ using E_LaptopShop.Application.Features.User.Queries.GetPagedUsersQuery;
 using E_LaptopShop.Application.Features.User.Queries.GetUserByEmailQuery;
 using E_LaptopShop.Application.Features.User.Queries.GetUserByIdQuery;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Helpers;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_LaptopShop.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // 👑 Only Admin can manage users
-    [Tags("👑 Admin")]
-    public class UsersController : ControllerBase
+    [AdminOnly]
+    [Tags(ApiTags.Admin)]
+    public class UsersController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
         private readonly ILogger<UsersController> _logger;

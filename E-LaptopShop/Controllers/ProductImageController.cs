@@ -13,11 +13,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using E_LaptopShop.Helpers;
+
 namespace E_LaptopShop.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ProductImageController : ControllerBase
+    public class ProductImageController : ApiV1ControllerBase
     {
         private readonly IMediator _mediator;
         private readonly ILogger<ProductImageController> _logger;
@@ -32,8 +32,8 @@ namespace E_LaptopShop.Controllers
         /// 👑 [ADMIN] Lấy tất cả ảnh sản phẩm với phân trang
         /// </summary>
         [HttpGet("GetAllProductImage")]
-        [Authorize(Roles = "Admin,Manager")]
-        [Tags("👑 Admin")]
+        [AdminOrManager]
+        [Tags(ApiTags.Admin)]
         public async Task<ActionResult<ApiResponse<PagedResult<ProductImageDto>>>> GetAllProductImageAndPagination(
             [FromQuery] GetAllProductImageQuery query)
         {
@@ -53,7 +53,7 @@ namespace E_LaptopShop.Controllers
         /// 🔓 [PUBLIC] Lấy ảnh theo ProductId - Dành cho catalog
         /// </summary>
         [HttpGet("GetByProductId")]
-        [Tags("🔓 Public")]
+        [Tags(ApiTags.Public)]
         public async Task<ActionResult<ApiResponse<IEnumerable<ProductImageDto>>>> GetByProductId(int productId)
         {
             try
