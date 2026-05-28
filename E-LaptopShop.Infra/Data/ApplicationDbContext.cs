@@ -97,6 +97,10 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<UserLoyalty> UserLoyalty { get; set; }
 
     public virtual DbSet<Wishlist> Wishlists { get; set; }
+
+    public virtual DbSet<UserWallet> UserWallets { get; set; }
+    public virtual DbSet<WalletTransaction> WalletTransactions { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)

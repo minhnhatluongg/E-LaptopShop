@@ -4,6 +4,7 @@ using E_LaptopShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Data.SqlClient;
 
 namespace E_LaptopShop.Infra.Data
 {
@@ -19,7 +20,16 @@ namespace E_LaptopShop.Infra.Data
             try
             {
                 // Đảm bảo DB đã được migrate
-                await context.Database.MigrateAsync();
+                // Nếu DB đã có sẵn table nhưng chưa có migration history → tự baseline
+                try
+                {
+                    await context.Database.MigrateAsync();
+                }
+                catch (SqlException ex) when (ex.Number == 2714) // Object already exists
+                {
+                    logger.LogWarning("Tables already exist without migration history. Registering migration as applied...");
+                    await EnsureMigrationHistoryAsync(context, logger);
+                }
 
                 // Chỉ seed nếu chưa có user nào
                 if (await context.Users.AnyAsync())
@@ -87,6 +97,34 @@ namespace E_LaptopShop.Infra.Data
             {
                 logger.LogError(ex, "Error seeding database");
             }
+        }
+
+        private static async Task EnsureMigrationHistoryAsync(ApplicationDbContext context, ILogger logger)
+        {
+            var sql = """
+                IF NOT EXISTS (
+                    SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '__EFMigrationsHistory'
+                )
+                BEGIN
+                    CREATE TABLE [__EFMigrationsHistory] (
+                        [MigrationId] nvarchar(150) NOT NULL,
+                        [ProductVersion] nvarchar(32) NOT NULL,
+                        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+                    );
+                END
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM [__EFMigrationsHistory]
+                    WHERE [MigrationId] = '20260528020452_InitialCreate'
+                )
+                BEGIN
+                    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+                    VALUES ('20260528020452_InitialCreate', '9.0.4');
+                END
+                """;
+
+            await context.Database.ExecuteSqlRawAsync(sql);
+            logger.LogInformation("Migration history baseline completed.");
         }
     }
 }

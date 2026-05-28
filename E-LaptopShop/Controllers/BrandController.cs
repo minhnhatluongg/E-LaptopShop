@@ -8,7 +8,7 @@ using E_LaptopShop.Application.Features.Brands.Queries.GetActiveBrandsQuery;
 using E_LaptopShop.Application.Features.Brands.Queries.GetAllBrandsQuery;
 using E_LaptopShop.Application.Features.Brands.Queries.GetBrandById;
 using E_LaptopShop.Application.Models;
-using E_LaptopShop.Controllers;
+using E_LaptopShop.Controllers.Api_version;
 using E_LaptopShop.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

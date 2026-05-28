@@ -13,6 +13,7 @@ using E_LaptopShop.Application.Features.Products.Queries.GetAllProducts;
 using E_LaptopShop.Application.Common.Pagination;
 
 using E_LaptopShop.Helpers;
+using E_LaptopShop.Controllers.Api_version;
 
 namespace E_LaptopShop.Controllers;
 

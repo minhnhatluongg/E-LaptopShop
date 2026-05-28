@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace E_LaptopShop.Controllers;
+namespace E_LaptopShop.Controllers.Api_version;
 
 [ApiController]
 [Route("api/v1/[controller]")]

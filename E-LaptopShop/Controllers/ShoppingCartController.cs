@@ -6,6 +6,7 @@ using E_LaptopShop.Application.Features.ShoppingCart.Commands.UpdateCartItem;
 using E_LaptopShop.Application.Features.ShoppingCart.Queries.GetCart;
 using E_LaptopShop.Application.Features.ShoppingCart.Queries.GetCartSummary;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Controllers.Api_version;
 using E_LaptopShop.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
