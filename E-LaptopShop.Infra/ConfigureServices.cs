@@ -44,6 +44,9 @@ namespace E_LaptopShop.Infra
             services.AddScoped<IRoleLookup, RoleLookupRepository>();
             services.AddScoped<ISlugGenerator, SlugGenerator>();
             services.AddScoped<IBrandRepositoy, BrandRepository>();
+            services.AddScoped<ICouponRepository, CouponRepository>();
+            services.AddScoped<IUserWalletRepository, UserWalletRepository>();
+            services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
 
             return services;
         }

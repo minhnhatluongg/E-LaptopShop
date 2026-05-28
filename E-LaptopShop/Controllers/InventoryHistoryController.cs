@@ -3,6 +3,7 @@ using E_LaptopShop.Application.Common.Pagination;
 using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Application.Features.InventoryHistory.Queries.GetInventoryHistory;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Controllers.Api_version;
 using E_LaptopShop.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

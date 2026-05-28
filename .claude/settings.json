@@ -1,7 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "Read(//d/project-building-CV/laptop_shop/free-react-tailwind-admin-dashboard/src/layout/**)",
+      "Bash(mkdir -p \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/api\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/components/ui\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/components/common\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/context\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/hooks\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/layout\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/pages/admin\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/pages/public\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/pages/auth\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/utils\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/src/router\" \"d:/project-building-CV/laptop_shop/fe-LaptopShop/app/public\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\\\\Features\\\\Brand\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Json)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\\\\Features\\\\Brand\" -Recurse | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\\\\Features\\\\Brand\", \"\"\\) })",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\\\\Features\\\\Brands\" -Recurse -File | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\\\\Features\\\\Brands\\\\\", \"\"\\) } | Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Domain\\\\Entities\" -File | Select-Object Name | ForEach-Object { $_.Name } | Sort-Object)",
+      "Bash(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs grep -l \"AddApplicationServices\\\\|AddMediatR\\\\|services.Add\")",
+      "Bash(dir \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\")"
+    ],
+    "additionalDirectories": [
+      "d:\\project-building-CV\\laptop_shop\\fe-LaptopShop\\app\\src"
     ]
   }
 }

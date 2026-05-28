@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
 
 using E_LaptopShop.Helpers;
+using E_LaptopShop.Controllers.Api_version;
 
 namespace E_LaptopShop.Controllers
 {

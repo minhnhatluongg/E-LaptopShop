@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using E_LaptopShop.Application;
 using E_LaptopShop.Application.Common;
@@ -14,6 +15,16 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// NOTE: CreateBuilder đã tự nạp:
+//   1) appsettings.json
+//   2) appsettings.{Environment}.json
+//   3) UserSecrets (Development only)
+//   4) Environment Variables
+//   5) Command-line args
+// Chỉ thêm các source NGOÀI defaults — vd file optional appsettings.Local.json:
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 // Add services to the container
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -21,17 +32,6 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
-
-    var env = builder.Environment;
-    builder.Configuration
-        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)                      // file thật local (không commit)
-        .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true) // Development/Production (không commit)
-        .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);               // tuỳ dev
-
-    if (env.IsDevelopment())
-        builder.Configuration.AddUserSecrets<Program>(optional: true);  // secrets dev
-
-    builder.Configuration.AddEnvironmentVariables();
 // Add Swagger with JWT Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -66,6 +66,11 @@ builder.Services.AddSwaggerGen(c =>
 
     // File upload support
     c.OperationFilter<FileUploadOperationFilter>();
+
+    // XML documentation
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
 });
 
 // Add layer dependency
@@ -160,6 +165,11 @@ builder.Services.Configure<FormOptions>(options =>
     options.ValueLengthLimit = int.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
+// Auto-create required directories (deploy friendy — no manual setup needed)
+var wwwrootDirectory = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+if (!Directory.Exists(wwwrootDirectory))
+    Directory.CreateDirectory(wwwrootDirectory);
+
 var uploadsDirectory = Path.Combine(builder.Environment.ContentRootPath, "uploads");
 if (!Directory.Exists(uploadsDirectory))
 {
@@ -196,15 +206,12 @@ var app = builder.Build();
 
     
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "E-LaptopShop v1");
-        c.RoutePrefix = string.Empty;
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "E-LaptopShop v1");
+    c.RoutePrefix = string.Empty;
+});
 
 // Add global exception handler
 app.UseGlobalExceptionHandler();
@@ -242,8 +249,6 @@ app.UseStaticFiles(new StaticFileOptions
         Path.Combine(builder.Environment.ContentRootPath, "uploads", "other")),
     RequestPath = "/other"
 });
-app.UseHttpsRedirection();
-
 app.UseCors("AllowAll");
 
 // ✨ JWT Middleware Pipeline - ORDER MATTERS!
@@ -252,7 +257,27 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed database (chỉ tạo user nếu DB chưa có)
-await E_LaptopShop.Infra.Data.DbInitializer.SeedAsync(app.Services);
+// Health endpoint — Quan trọng cho IIS / Azure / k8s health check
+app.MapGet("/", () => Results.Ok(new
+{
+    name = "E-LaptopShop API",
+    status = "running",
+    environment = app.Environment.EnvironmentName,
+    time = DateTime.UtcNow
+}));
+
+app.MapGet("/health", () => Results.Ok("Healthy"));
+
+// Seed database — bọc try/catch để không crash startup khi DB lỗi
+try
+{
+    await E_LaptopShop.Infra.Data.DbInitializer.SeedAsync(app.Services);
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILoggerFactory>()
+                              .CreateLogger("Startup");
+    logger.LogError(ex, "Database seed failed — app will continue running");
+}
 
 app.Run();
