@@ -32,6 +32,8 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<ProductReview> ProductReviews { get; set; }
 
+    public virtual DbSet<ProductComment> ProductComments { get; set; }
+
     public virtual DbSet<ProductSpecification> ProductSpecifications { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }

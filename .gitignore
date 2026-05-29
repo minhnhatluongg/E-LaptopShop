@@ -435,7 +435,15 @@ local.db
 *.sqlite-journal
 
 
-/Database
-/seed
-/migrations-wallet.sql
+# Root-level temp/old SQL files (đã chuyển vào Database/)
 /seed-data.sql
+/migrations-wallet.sql
+/seed
+
+# Database/ folder: TRACK (commit lên git)
+# !Database/   ← không cần dòng này vì /Database đã được bỏ
+
+# ============================================================
+# .claude settings (tool-specific, không cần commit)
+# ============================================================
+.claude/

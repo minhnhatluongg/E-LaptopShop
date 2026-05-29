@@ -13,6 +13,8 @@ namespace E_LaptopShop.Infra.Repositories
         {
         }
 
+        protected override long GetEntityId(WalletTransaction entity) => entity.Id;
+
         public async Task<IEnumerable<WalletTransaction>> GetByWalletIdAsync(
             int walletId, int pageNumber = 1, int pageSize = 20, CancellationToken cancellationToken = default)
         {

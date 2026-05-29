@@ -42,6 +42,8 @@ namespace E_LaptopShop.Application
             services.AddScoped<IBrandService, BrandService>();
             services.AddScoped<ICategoryService, CategoriesService>();
             services.AddScoped<ICouponService, CouponService>();
+            services.AddScoped<IWalletService, WalletService>();
+            services.AddScoped<IProductDetailService, ProductDetailService>();
 
             return services;
         }

@@ -13,7 +13,19 @@ public class ProductDto
     public decimal Price { get; set; }
     public decimal? Discount { get; set; }
     public int? InStock { get; set; }
+
+    // Category
     public int? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
+
+    // Brand
+    public int? BrandId { get; set; }
+    public string? BrandName { get; set; }
+    public string? BrandSlug { get; set; }
+
+    // Ảnh chính (IsMain=true) để hiện trong list — không cần load toàn bộ gallery
+    public string? MainImageUrl { get; set; }
+
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public bool? IsActive { get; set; }

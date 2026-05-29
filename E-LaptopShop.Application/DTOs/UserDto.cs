@@ -58,4 +58,27 @@ namespace E_LaptopShop.Application.DTOs
         public bool? IsActive { get; set; }
         public string? UpdatedBy { get; set; }
     }
+
+    // ─── Customer self-service DTOs ───────────────────────────────────────────
+
+    public class UpdateMyProfileDto
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Phone { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = null!;
+        public string NewPassword { get; set; } = null!;
+        public string ConfirmNewPassword { get; set; } = null!;
+    }
+
+    public class UpdateAvatarDto
+    {
+        public int SysFileId { get; set; }
+    }
 }

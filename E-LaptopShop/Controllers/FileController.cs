@@ -30,10 +30,11 @@ namespace E_LaptopShop.Controllers
         [Authorize] // Customers can upload files
         [Tags(ApiTags.Customer)]
         public async Task<ActionResult<ApiResponse<ChunkUploadResponseDto>>> UploadChunk(
-                IFormFile chunk, 
+                IFormFile chunk,
                 [FromForm] string fileName,
-                [FromForm] int chunkNumber, 
-                [FromForm] int totalChunks
+                [FromForm] int chunkNumber,
+                [FromForm] int totalChunks,
+                [FromForm] string? context = null
                 )
         {
             try
@@ -49,7 +50,8 @@ namespace E_LaptopShop.Controllers
                     FileName = fileName,
                     ChunkNumber = chunkNumber,
                     TotalChunks = totalChunks,
-                    UploadedBy = userId
+                    UploadedBy = userId,
+                    UploadContext = context
                 };
                 var result = await _mediator.Send(command);
                 var responseDto = new ChunkUploadResponseDto
@@ -96,7 +98,9 @@ namespace E_LaptopShop.Controllers
         }
 
         [HttpPost("upload-file")]
-        public async Task<ActionResult<ApiResponse<ChunkUploadResponseDto>>> UploadFile(IFormFile file)
+        public async Task<ActionResult<ApiResponse<ChunkUploadResponseDto>>> UploadFile(
+            IFormFile file,
+            [FromQuery] string? context = null)
         {
             if (file == null)
                 return BadRequest(ApiResponse<ChunkUploadResponseDto>.ErrorResponse("No file uploaded"));
@@ -129,7 +133,8 @@ namespace E_LaptopShop.Controllers
                             FileName = file.FileName,
                             ChunkNumber = chunkNumber,
                             TotalChunks = totalChunks,
-                            UploadedBy = userId
+                            UploadedBy = userId,
+                            UploadContext = context  // e.g. "products/23", "avatars"
                         };
 
                         finalResult = await _mediator.Send(command);
