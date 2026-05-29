@@ -1,26 +1,26 @@
 using AutoMapper;
 using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.Services.Interfaces;
 using E_LaptopShop.Domain.Entities;
 using E_LaptopShop.Domain.Enums;
 using E_LaptopShop.Domain.Repositories;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace E_LaptopShop.Application.Features.Orders.Commands.CreateOrder
 {
     public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, OrderDto>
     {
-        private readonly IOrderRepository _orderRepository;
-        private readonly IOrderItemRepository _orderItemRepository;
-        private readonly IShoppingCartRepository _cartRepository;
+        private readonly IOrderRepository            _orderRepository;
+        private readonly IOrderItemRepository        _orderItemRepository;
+        private readonly IShoppingCartRepository     _cartRepository;
         private readonly IShoppingCartItemRepository _cartItemRepository;
-        private readonly IProductRepository _productRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly IProductRepository          _productRepository;
+        private readonly IUserRepository             _userRepository;
+        private readonly IInventoryService           _inventoryService;
+        private readonly ICouponService              _couponService;
+        private readonly IMapper                     _mapper;
+        private readonly ILogger<CreateOrderCommandHandler> _logger;
 
         public CreateOrderCommandHandler(
             IOrderRepository orderRepository,
@@ -29,210 +29,225 @@ namespace E_LaptopShop.Application.Features.Orders.Commands.CreateOrder
             IShoppingCartItemRepository cartItemRepository,
             IProductRepository productRepository,
             IUserRepository userRepository,
-            IMapper mapper)
+            IInventoryService inventoryService,
+            ICouponService couponService,
+            IMapper mapper,
+            ILogger<CreateOrderCommandHandler> logger)
         {
-            _orderRepository = orderRepository;
+            _orderRepository     = orderRepository;
             _orderItemRepository = orderItemRepository;
-            _cartRepository = cartRepository;
-            _cartItemRepository = cartItemRepository;
-            _productRepository = productRepository;
-            _userRepository = userRepository;
-            _mapper = mapper;
+            _cartRepository      = cartRepository;
+            _cartItemRepository  = cartItemRepository;
+            _productRepository   = productRepository;
+            _userRepository      = userRepository;
+            _inventoryService    = inventoryService;
+            _couponService       = couponService;
+            _mapper              = mapper;
+            _logger              = logger;
         }
 
         public async Task<OrderDto> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
         {
-            // Kiểm tra user tồn tại
+            // 1. Validate user
             var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
             if (user == null)
-            {
                 throw new KeyNotFoundException($"User with ID {request.UserId} not found");
-            }
 
-            // Lấy items để tạo order
-            List<(Product Product, int Quantity, decimal UnitPrice)> orderItems;
-            
-            if (request.CreateFromCart)
-            {
-                orderItems = await GetItemsFromCart(request.UserId, cancellationToken);
-            }
-            else
-            {
-                orderItems = await GetItemsFromCommand(request.Items, cancellationToken);
-            }
+            // 2. Resolve order items (from cart or manual)
+            var orderItems = request.CreateFromCart
+                ? await GetItemsFromCart(request.UserId, cancellationToken)
+                : await GetItemsFromCommand(request.Items, cancellationToken);
 
             if (orderItems.Count == 0)
+                throw new InvalidOperationException("Không có sản phẩm nào trong đơn hàng");
+
+            // 3. Stock check upfront (trước khi deduct, tránh partial deduction)
+            foreach (var (product, qty, _) in orderItems)
             {
-                throw new InvalidOperationException("Cannot create order with no items");
+                var available = await _inventoryService.IsAvailableAsync(product.Id, qty, cancellationToken);
+                if (!available)
+                    throw new InvalidOperationException(
+                        $"Sản phẩm \"{product.Name}\" không đủ hàng. Vui lòng cập nhật giỏ hàng.");
             }
 
-            // Tạo order number unique
-            var orderNumber = await GenerateOrderNumber();
+            // 4. Calculate totals
+            var subTotal      = orderItems.Sum(x => x.UnitPrice * x.Quantity);
+            var discountAmount = 0m;
+            var appliedCode   = (string?)null;
 
-            // Tính toán các giá trị
-            var subTotal = orderItems.Sum(x => x.UnitPrice * x.Quantity);
-            var discountAmount = await CalculateDiscount(request.DiscountCode, subTotal);
-            var taxAmount = CalculateTax(subTotal - discountAmount);
-            var shippingFee = CalculateShippingFee(request.ShippingMethod, subTotal);
-            var totalAmount = subTotal - discountAmount + taxAmount + shippingFee;
+            // 4a. Apply coupon nếu có
+            if (!string.IsNullOrWhiteSpace(request.DiscountCode))
+            {
+                try
+                {
+                    var couponResult = await _couponService.ValidateAsync(
+                        request.DiscountCode, subTotal, request.UserId, cancellationToken);
+                    discountAmount = couponResult.DiscountAmount;
+                    appliedCode    = request.DiscountCode.Trim().ToUpper();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("[Order] Coupon invalid: {Msg}", ex.Message);
+                    throw new InvalidOperationException($"Mã giảm giá không hợp lệ: {ex.Message}");
+                }
+            }
 
-            // Tạo order
+            var afterDiscount = subTotal - discountAmount;
+            var taxAmount     = afterDiscount * 0.1m;         // VAT 10%
+            var shippingFee   = ResolveShippingFee(request.ShippingMethod, subTotal);
+            var totalAmount   = afterDiscount + taxAmount + shippingFee;
+            var orderNumber   = GenerateOrderNumber();
+
+            // 5. Persist order
             var order = new Order
             {
-                OrderNumber = orderNumber,
-                UserId = request.UserId,
+                OrderNumber       = orderNumber,
+                UserId            = request.UserId,
                 ShippingAddressId = request.ShippingAddressId,
-                OrderDate = DateTime.UtcNow,
-                Status = OrderStatus.Pending.ToString(),
-                SubTotal = subTotal,
-                DiscountAmount = discountAmount,
-                DiscountCode = request.DiscountCode,
-                TaxAmount = taxAmount,
-                ShippingFee = shippingFee,
-                TotalAmount = totalAmount,
-                ShippingMethod = request.ShippingMethod,
-                PaymentMethod = request.PaymentMethod,
-                IsPaid = false,
-                Notes = request.Notes,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = request.UserId.ToString()
+                OrderDate         = DateTime.UtcNow,
+                Status            = OrderStatus.Pending.ToString(),
+                SubTotal          = subTotal,
+                DiscountAmount    = discountAmount,
+                DiscountCode      = appliedCode,
+                TaxAmount         = taxAmount,
+                ShippingFee       = shippingFee,
+                TotalAmount       = totalAmount,
+                ShippingMethod    = request.ShippingMethod,
+                PaymentMethod     = request.PaymentMethod,
+                IsPaid            = false,
+                Notes             = request.Notes,
+                CreatedAt         = DateTime.UtcNow,
+                CreatedBy         = request.UserId.ToString(),
             };
 
-            // Lưu order
             order = await _orderRepository.CreateAsync(order, cancellationToken);
+            _logger.LogInformation("[Order] Created #{OrderNumber} UserId={UserId} Total={Total}",
+                orderNumber, request.UserId, totalAmount);
 
-            // Tạo order items
-            foreach (var item in orderItems)
+            // 6. Persist order items + Deduct inventory (Optimistic Locking)
+            var deductFailed = new List<string>();
+
+            foreach (var (product, qty, unitPrice) in orderItems)
             {
-                var orderItem = new OrderItem
+                var item = new OrderItem
                 {
-                    OrderId = order.Id,
-                    ProductId = item.Product.Id,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    CostPrice = 0, // TODO: Add CostPrice to Product entity
-                    DiscountAmount = 0, // Tính theo từng item nếu cần
-                    DiscountPercent = 0,
-                    TaxAmount = 0, // Tính theo từng item nếu cần
-                    SubTotal = item.UnitPrice * item.Quantity,
-                    SKU = null, // TODO: Add SKU to Product entity
-                    Status = OrderItemStatus.Pending.ToString()
+                    OrderId        = order.Id,
+                    ProductId      = product.Id,
+                    Quantity       = qty,
+                    UnitPrice      = unitPrice,
+                    SubTotal       = unitPrice * qty,
+                    Status         = OrderItemStatus.Pending.ToString(),
+                    DiscountAmount = 0,
+                    DiscountPercent = product.Discount ?? 0,
                 };
+                await _orderItemRepository.CreateAsync(item, cancellationToken);
 
-                await _orderItemRepository.CreateAsync(orderItem, cancellationToken);
+                // Trừ kho với Optimistic Locking
+                var (ok, newStock, msg) = await _inventoryService.DeductStockAsync(
+                    product.Id, qty, order.Id,
+                    $"Đặt hàng #{orderNumber}",
+                    maxRetries: 3, ct: cancellationToken);
+
+                if (!ok)
+                {
+                    deductFailed.Add($"{product.Name}: {msg}");
+                    _logger.LogWarning("[Order] Deduct failed for product {Id}: {Msg}", product.Id, msg);
+                }
+                else
+                {
+                    _logger.LogInformation("[Order] Deducted stock product {Id} → {Stock}", product.Id, newStock);
+                }
             }
 
-            // Xóa giỏ hàng nếu tạo từ cart
+            // Nếu có item không trừ được kho → log nhưng vẫn tạo đơn (Admin sẽ xử lý)
+            // Trong production có thể cancel order nếu deductFailed.Count > 0
+            if (deductFailed.Count > 0)
+                _logger.LogError("[Order] #{OrderNumber} — Stock deduction failed: {Items}",
+                    orderNumber, string.Join(", ", deductFailed));
+
+            // 7. Consume coupon (ghi CouponUsage)
+            if (!string.IsNullOrWhiteSpace(appliedCode))
+            {
+                try
+                {
+                    await _couponService.RedeemAsync(
+                        appliedCode, subTotal, request.UserId, order.Id, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[Order] Coupon redeem failed for #{OrderNumber}", orderNumber);
+                }
+            }
+
+            // 8. Clear cart if ordered from cart
             if (request.CreateFromCart)
-            {
-                await ClearCartAfterOrder(request.UserId, cancellationToken);
-            }
+                await ClearCartAsync(request.UserId, cancellationToken);
 
-            // Load lại order với đầy đủ thông tin
-            var createdOrder = await _orderRepository.GetByIdAsync(order.Id, cancellationToken);
-            return _mapper.Map<OrderDto>(createdOrder);
+            // 9. Return full order
+            var created = await _orderRepository.GetByIdAsync(order.Id, cancellationToken);
+            return _mapper.Map<OrderDto>(created!);
         }
 
-        private async Task<List<(Product Product, int Quantity, decimal UnitPrice)>> GetItemsFromCart(int userId, CancellationToken cancellationToken)
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        private async Task<List<(Product Product, int Quantity, decimal UnitPrice)>> GetItemsFromCart(
+            int userId, CancellationToken ct)
         {
-            var cart = await _cartRepository.GetCartWithItemsAsync(userId, cancellationToken);
+            var cart = await _cartRepository.GetCartWithItemsAsync(userId, ct);
             if (cart?.Items == null || cart.Items.Count == 0)
+                throw new InvalidOperationException("Giỏ hàng trống");
+
+            var result = new List<(Product, int, decimal)>();
+            foreach (var item in cart.Items)
             {
-                throw new InvalidOperationException("Shopping cart is empty");
+                var product = await _productRepository.GetByIdAsync(item.ProductId, ct)
+                    ?? throw new KeyNotFoundException($"Sản phẩm #{item.ProductId} không tìm thấy");
+
+                result.Add((product, item.Quantity, item.UnitPrice));
             }
-
-            var items = new List<(Product, int, decimal)>();
-            foreach (var cartItem in cart.Items)
-            {
-                var product = await _productRepository.GetByIdAsync(cartItem.ProductId, cancellationToken);
-                if (product == null)
-                {
-                    throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} not found");
-                }
-
-                // Kiểm tra stock
-                if (product.InStock < cartItem.Quantity)
-                {
-                    throw new InvalidOperationException($"Not enough stock for product {product.Name}. Available: {product.InStock}, Requested: {cartItem.Quantity}");
-                }
-
-                items.Add((product, cartItem.Quantity, cartItem.UnitPrice));
-            }
-
-            return items;
+            return result;
         }
 
-        private async Task<List<(Product Product, int Quantity, decimal UnitPrice)>> GetItemsFromCommand(List<CreateOrderItemDto> items, CancellationToken cancellationToken)
+        private async Task<List<(Product Product, int Quantity, decimal UnitPrice)>> GetItemsFromCommand(
+            List<CreateOrderItemDto> items, CancellationToken ct)
         {
-            var orderItems = new List<(Product, int, decimal)>();
-            
+            var result = new List<(Product, int, decimal)>();
             foreach (var item in items)
             {
-                var product = await _productRepository.GetByIdAsync(item.ProductId, cancellationToken);
-                if (product == null)
-                {
-                    throw new KeyNotFoundException($"Product with ID {item.ProductId} not found");
-                }
+                var product = await _productRepository.GetByIdAsync(item.ProductId, ct)
+                    ?? throw new KeyNotFoundException($"Sản phẩm #{item.ProductId} không tìm thấy");
 
-                // Kiểm tra stock
-                if (product.InStock < item.Quantity)
-                {
-                    throw new InvalidOperationException($"Not enough stock for product {product.Name}");
-                }
-
-                var unitPrice = item.CustomPrice ?? product.Price;
-                orderItems.Add((product, item.Quantity, unitPrice));
+                result.Add((product, item.Quantity, item.CustomPrice ?? product.Price));
             }
-
-            return orderItems;
+            return result;
         }
 
-        private static ValueTask<string> GenerateOrderNumber()
+        private static string GenerateOrderNumber()
         {
-            const string prefix = "ORD";
-            var now = DateTime.UtcNow;
-            var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000);
-            var value = $"{prefix}{now:yyyyMMddHHmmssfff}{rand:D6}";
-            return ValueTask.FromResult(value);
+            var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(10000, 99999);
+            return $"ORD{DateTime.UtcNow:yyyyMMddHHmm}{rand:D5}";
         }
 
-        private async Task<decimal> CalculateDiscount(string discountCode, decimal subTotal)
-        {
-            // TODO: Implement discount code logic
-            return 0;
-        }
-
-        private decimal CalculateTax(decimal amount)
-        {
-            // TODO: Implement tax calculation (VAT 10%)
-            return amount * 0.1m;
-        }
-
-        private decimal CalculateShippingFee(string shippingMethod, decimal subTotal)
-        {
-            // TODO: Implement shipping fee calculation
-            return shippingMethod?.ToLower() switch
+        private static decimal ResolveShippingFee(string? method, decimal subTotal) =>
+            method?.ToLower() switch
             {
-                "express" => 50000,
-                "standard" => 30000,
-                "free" when subTotal >= 500000 => 0,
-                _ => 30000
+                "express"  => 50_000m,
+                "free"     => 0m,
+                "standard" => subTotal >= 10_000_000m ? 0m : 30_000m, // Free ship đơn ≥10tr
+                _          => subTotal >= 10_000_000m ? 0m : 30_000m,
             };
-        }
 
-        private async Task ClearCartAfterOrder(int userId, CancellationToken cancellationToken)
+        private async Task ClearCartAsync(int userId, CancellationToken ct)
         {
             try
             {
-                var cart = await _cartRepository.GetByUserIdAsync(userId, cancellationToken);
+                var cart = await _cartRepository.GetByUserIdAsync(userId, ct);
                 if (cart != null)
-                {
-                    await _cartItemRepository.DeleteByCartIdAsync(cart.Id, cancellationToken);
-                }
+                    await _cartItemRepository.DeleteByCartIdAsync(cart.Id, ct);
             }
-            catch
+            catch (Exception ex)
             {
-                // Không throw exception nếu clear cart fail
+                _logger.LogWarning(ex, "[Order] Failed to clear cart for user {UserId}", userId);
             }
         }
     }

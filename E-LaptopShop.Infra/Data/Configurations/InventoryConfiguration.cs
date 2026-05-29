@@ -39,6 +39,14 @@ namespace E_LaptopShop.Infra.Data.Configurations
                    .OnDelete(DeleteBehavior.Cascade)
                    .HasConstraintName("FK_Inventories_Products");
 
+            // ── Optimistic Concurrency Token ──────────────────────────────
+            // SQL Server rowversion = 8-byte auto-increment. EF Core tự sinh:
+            //   WHERE Id=@id AND RowVersion=@originalVersion
+            // → 2 request đồng thời: request thứ 2 nhận DbUpdateConcurrencyException.
+            builder.Property(i => i.RowVersion)
+                   .IsRowVersion()
+                   .IsConcurrencyToken();
+
             builder.HasMany(i => i.HistoryRecords)
                    .WithOne(ih => ih.Inventory)
                    .HasForeignKey(ih => ih.InventoryId)

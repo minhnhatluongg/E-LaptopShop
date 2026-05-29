@@ -56,10 +56,21 @@ namespace E_LaptopShop.Application.Services.Implementations
             return await UpdateAsync(requestDto.Id, requestDto, cancellationToken);
         }
 
+        /// <summary>
+        /// Soft-delete: set IsActive = false thay vì xoá khỏi DB.
+        /// Lý do: Product có FK trong OrderItems — hard delete vi phạm referential integrity.
+        /// Sản phẩm ẩn khỏi storefront nhưng vẫn tồn tại trong lịch sử đơn hàng.
+        /// </summary>
         public async Task<int> DeleteProductAsync(int id, CancellationToken cancellationToken = default)
         {
-            var result = await DeleteAsync(id, cancellationToken);
-            return result ? id : throw new InvalidOperationException($"Failed to delete product with ID {id}");
+            var product = await _productRepository.GetByIdAsync(id, cancellationToken);
+            if (product == null)
+                throw new KeyNotFoundException($"Product with ID {id} not found");
+
+            product.IsActive  = false;
+            product.UpdatedAt = DateTime.UtcNow;
+            await _productRepository.UpdateAsync(product, cancellationToken);
+            return id;
         }
 
         public async Task<bool> ValidateProductAsync(int id, CancellationToken cancellationToken = default)

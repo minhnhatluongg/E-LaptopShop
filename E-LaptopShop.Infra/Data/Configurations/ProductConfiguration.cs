@@ -43,6 +43,9 @@ namespace E_LaptopShop.Infra.Data.Configurations
                    .HasColumnType("datetime")
                    .HasDefaultValueSql("GETUTCDATE()");
 
+            builder.Property(p => p.UpdatedAt)
+                   .HasColumnType("datetime");
+
             // Indexes
             builder.HasIndex(p => p.Slug).IsUnique();
             builder.HasIndex(p => p.CategoryId);

@@ -1,5 +1,6 @@
 using AutoMapper;
 using E_LaptopShop.Application.DTOs;
+using E_LaptopShop.Application.Services.Interfaces;
 using E_LaptopShop.Domain.Enums;
 using E_LaptopShop.Domain.Repositories;
 using MediatR;
@@ -14,15 +15,18 @@ namespace E_LaptopShop.Application.Features.Orders.Commands.UpdateOrderStatus
         private readonly IOrderRepository _orderRepository;
         private readonly IOrderItemRepository _orderItemRepository;
         private readonly IMapper _mapper;
+        private readonly ILoyaltyService _loyaltyService;
 
         public UpdateOrderStatusCommandHandler(
             IOrderRepository orderRepository,
             IOrderItemRepository orderItemRepository,
-            IMapper mapper)
+            IMapper mapper,
+            ILoyaltyService loyaltyService)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
             _mapper = mapper;
+            _loyaltyService = loyaltyService;
         }
 
         public async Task<OrderDto> Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken)
@@ -163,10 +167,17 @@ namespace E_LaptopShop.Application.Features.Orders.Commands.UpdateOrderStatus
 
         private async Task HandleOrderDelivered(Domain.Entities.Order order, CancellationToken cancellationToken)
         {
-            // TODO:
-            // - Gửi email delivered
-            // - Cập nhật loyalty points
-            // - Tạo notification
+            // Award điểm + cập nhật tier + cấp coupon WELCOME10 nếu là đơn đầu tiên.
+            // LoyaltyService idempotent — gọi nhiều lần cùng order chỉ award 1 lần.
+            try
+            {
+                await _loyaltyService.AwardForDeliveredOrderAsync(order.Id, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Không chặn flow update status nếu loyalty fail
+            }
+            // TODO: gửi email delivered, tạo notification giao hàng
         }
     }
 }

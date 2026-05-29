@@ -433,6 +433,36 @@ namespace E_LaptopShop.Controllers
         }
 
         /// <summary>
+        /// 🗑️ [CUSTOMER] Xoá ảnh đại diện — set AvatarUrl về null.
+        /// </summary>
+        [HttpDelete("me/avatar")]
+        [Authorize]
+        [Tags(ApiTags.Customer)]
+        public async Task<ActionResult<ApiResponse<object>>> DeleteAvatar()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return NotFound(ApiResponse<object>.ErrorResponse("User not found"));
+
+                user.AvatarUrl = null;
+                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedBy = userId.ToString();
+                await _userRepository.UpdateAsync(user);
+
+                return Ok(ApiResponse<object>.SuccessResponse(
+                    new { avatarUrl = (string?)null },
+                    "Đã xoá ảnh đại diện"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting avatar");
+                return BadRequest(ApiResponse<object>.ErrorResponse("Failed to delete avatar"));
+            }
+        }
+
+        /// <summary>
         /// 🔒 Revoke All Tokens - Thu hồi tất cả refresh tokens của user
         /// </summary>
         /// <returns>Revoke status</returns>

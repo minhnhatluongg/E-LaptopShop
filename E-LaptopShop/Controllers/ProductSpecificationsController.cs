@@ -49,6 +49,18 @@ public class ProductSpecificationsController : ApiV1ControllerBase
     }
 
     /// <summary>
+    /// 🔓 [PUBLIC] Lấy spec theo ProductId — dùng cho product detail + admin form
+    /// </summary>
+    [HttpGet("GetByProductId/{productId}")]
+    [Tags(ApiTags.Public)]
+    public async Task<ActionResult<ApiResponse<ProductSpecificationDto?>>> GetByProductId(int productId)
+    {
+        var specs = await _mediator.Send(new GetAllProductSpecificationsQuery { ProductId = productId });
+        var spec  = specs.FirstOrDefault();
+        return Ok(ApiResponse<ProductSpecificationDto?>.SuccessResponse(spec));
+    }
+
+    /// <summary>
     /// 👑 [ADMIN] Tạo spec sản phẩm mới
     /// </summary>
     [HttpPost("CreateSpecification")]

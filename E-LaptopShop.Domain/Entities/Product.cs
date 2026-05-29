@@ -23,6 +23,7 @@ namespace E_LaptopShop.Domain.Entities
 
         public bool IsActive { get; set; } = true;
         public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
 
         // Navigation
         public virtual Category? Category { get; set; }
@@ -31,6 +32,7 @@ namespace E_LaptopShop.Domain.Entities
         public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
         public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
+        public virtual ICollection<ProductComment> ProductComments { get; set; } = new List<ProductComment>();
         public virtual ICollection<ProductSpecification> ProductSpecifications { get; set; } = new List<ProductSpecification>();
         public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
         public virtual ICollection<ShoppingCartItem> ShoppingCartItems { get; set; } = new List<ShoppingCartItem>();

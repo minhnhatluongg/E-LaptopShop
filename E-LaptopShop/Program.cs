@@ -1,9 +1,12 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
+using E_LaptopShop;                           // InventoryHub
 using E_LaptopShop.Application;
 using E_LaptopShop.Application.Common;
 using E_LaptopShop.Application.Models;
 using E_LaptopShop.Application.Services;
+using E_LaptopShop.Application.Services.Implementations;
+using E_LaptopShop.Application.Services.Interfaces;
 using E_LaptopShop.Helpers;
 using E_LaptopShop.Infra;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -76,6 +79,27 @@ builder.Services.AddSwaggerGen(c =>
 // Add layer dependency
 builder.Services.AddApplicationServices();  // Application layer first
 builder.Services.AddInfraServices(builder.Configuration);  // Infrastructure layer second
+
+// ── SignalR — real-time inventory updates ─────────────────────────────
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval   = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+});
+
+// Adapter cho IInventoryNotifier — Application layer dùng abstraction này
+// để push realtime mà không phải reference SignalR/Web project.
+builder.Services.AddScoped<E_LaptopShop.Application.Services.Interfaces.IInventoryNotifier,
+                            E_LaptopShop.Hubs.SignalRInventoryNotifier>();
+
+// ── Bulk Job Background Processing ────────────────────────────────────
+// Singleton vì Channel và Registry cần share state xuyên suốt app lifetime
+builder.Services.AddSingleton<E_LaptopShop.Application.Jobs.IBulkJobQueue,
+                               E_LaptopShop.Application.Jobs.BulkJobQueue>();
+builder.Services.AddSingleton<E_LaptopShop.Application.Jobs.BulkJobRegistry>();
+// BackgroundService (Hosted Service) — tự chạy khi app start
+builder.Services.AddHostedService<E_LaptopShop.Application.Jobs.BulkJobProcessor>();
 
 // ✨ JWT Configuration - 2025 Best Practices
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
@@ -151,11 +175,26 @@ builder.Services.AddAuthorization();
 // Add CORS
 builder.Services.AddCors(options =>
 {
+    // Policy dùng cho REST API thông thường (không cần credentials)
     options.AddPolicy("AllowAll",
         builder => builder
             .AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader());
+
+    // Policy dùng cho SignalR WebSocket — PHẢI có AllowCredentials + specific origins
+    // AllowAnyOrigin() không tương thích với AllowCredentials()
+    options.AddPolicy("AllowFrontend",
+        builder => builder
+            .WithOrigins(
+                "http://be-shopminhnhat.click",
+                "https://be-shopminhnhat.click",
+                "http://localhost:5173",    // dev FE
+                "https://localhost:5173"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());           // bắt buộc cho SignalR WebSocket
 });
 //big file upload
 builder.Services.Configure<FormOptions>(options =>
@@ -249,13 +288,20 @@ app.UseStaticFiles(new StaticFileOptions
         Path.Combine(builder.Environment.ContentRootPath, "uploads", "other")),
     RequestPath = "/other"
 });
-app.UseCors("AllowAll");
+// AllowFrontend áp dụng cho toàn app (bao gồm SignalR /hubs/*)
+// AllowAll vẫn fallback nhưng không dùng AllowCredentials nên không ảnh hưởng REST API
+app.UseCors("AllowFrontend");
 
 // ✨ JWT Middleware Pipeline - ORDER MATTERS!
 app.UseAuthentication();  // 🔐 Must come before UseAuthorization
 app.UseAuthorization();
 
 app.MapControllers();
+
+// ── SignalR Hub endpoint ──────────────────────────────────────────────
+// URL: ws://host/hubs/inventory
+// FE kết nối: new HubConnectionBuilder().withUrl("/hubs/inventory")
+app.MapHub<InventoryHub>("/hubs/inventory");
 
 // Health endpoint — Quan trọng cho IIS / Azure / k8s health check
 app.MapGet("/", () => Results.Ok(new

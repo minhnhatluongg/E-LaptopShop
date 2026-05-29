@@ -1,5 +1,6 @@
 using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Application.Features.Orders.Commands.CancelOrder;
+using E_LaptopShop.Application.Features.Orders.Commands.CreateGuestOrder;
 using E_LaptopShop.Application.Features.Orders.Commands.CreateOrder;
 using E_LaptopShop.Application.Features.Orders.Commands.UpdateOrderStatus;
 using E_LaptopShop.Application.Features.Orders.Queries.GetOrderById;
@@ -23,6 +24,35 @@ namespace E_LaptopShop.Controllers
         public OrdersController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        /// <summary>
+        /// 🔓 [GUEST] Tạo đơn hàng cho khách chưa đăng nhập.
+        /// Body chứa thông tin liên hệ + danh sách items (từ guest_cart localStorage).
+        /// </summary>
+        [HttpPost("guest")]
+        [AllowAnonymous]
+        [Tags(ApiTags.Public)]
+        public async Task<ActionResult<ApiResponse<OrderDto>>> CreateGuestOrder(
+            [FromBody] CreateGuestOrderCommand command)
+        {
+            try
+            {
+                var order = await _mediator.Send(command);
+                return Ok(ApiResponse<OrderDto>.SuccessResponse(order, "Đặt hàng thành công"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<OrderDto>.ErrorResponse(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<OrderDto>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<OrderDto>.ErrorResponse(ex.Message));
+            }
         }
 
         /// <summary>

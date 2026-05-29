@@ -67,25 +67,21 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadChunkCommand
                     Directory.CreateDirectory(targetFolder);
                 // Ghép các chunks
                 var slugifiedFileName = StringHelper.Slugify(request.FileName);
-                var uniqueId = Guid.NewGuid().ToString("N")[..8]; // 8 chars đủ unique
-                var combinedFileName = $"{uniqueId}_{slugifiedFileName}";
+                var uniqueId = Guid.NewGuid().ToString("N")[..8];
 
-                // Tổ chức subfolder theo context (avatar, product, category, v.v.)
-                // request.UploadContext = "products/{id}" | "avatars" | null
-                var subFolder = string.IsNullOrWhiteSpace(request.UploadContext)
-                    ? targetFolder
-                    : Path.Combine(targetFolder, request.UploadContext);
-
-                if (!Directory.Exists(subFolder))
-                    Directory.CreateDirectory(subFolder);
-
-                var finalFilePath = Path.Combine(subFolder, combinedFileName);
-
-                // fileUrlPrefix đã là "/image", nối context nếu có
-                var contextUrlPart = string.IsNullOrWhiteSpace(request.UploadContext)
+                // Dùng context làm prefix tên file thay vì tạo subdirectory.
+                // Tránh lỗi permission khi IIS không có quyền tạo folder mới.
+                // "products/1" → "products-1-" | "avatars" → "avatars-" | null → ""
+                var contextPrefix = string.IsNullOrWhiteSpace(request.UploadContext)
                     ? string.Empty
-                    : $"/{request.UploadContext}";
-                var fileUrl = $"{fileUrlPrefix}{contextUrlPart}/{combinedFileName}";
+                    : request.UploadContext
+                        .Replace("/", "-")
+                        .Replace("\\", "-")
+                        .Trim('-') + "-";
+
+                var combinedFileName = $"{contextPrefix}{uniqueId}_{slugifiedFileName}";
+                var finalFilePath    = Path.Combine(targetFolder, combinedFileName);
+                var fileUrl          = $"{fileUrlPrefix}/{combinedFileName}";
 
                 await CombineChunksAsync(fileFolder, finalFilePath, request.TotalChunks);
 

@@ -27,7 +27,23 @@ public class ProductMappingProfile : Profile
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.DisplayOrder)
                     .Select(i => i.ImageUrl)
-                    .FirstOrDefault()));
+                    .FirstOrDefault()))
+            // Specs tóm tắt — lấy bản ghi đầu tiên của ProductSpecifications
+            .ForMember(d => d.Cpu,     o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.CPU).FirstOrDefault()))
+            .ForMember(d => d.Gpu,     o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.GPU).FirstOrDefault()))
+            .ForMember(d => d.Ram,     o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.RAM).FirstOrDefault()))
+            .ForMember(d => d.Storage, o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.Storage).FirstOrDefault()))
+            .ForMember(d => d.Screen,  o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.Screen).FirstOrDefault()))
+            .ForMember(d => d.Battery, o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.Battery).FirstOrDefault()))
+            .ForMember(d => d.Weight,  o => o.MapFrom(s => s.ProductSpecifications.Select(x => x.Weight).FirstOrDefault()))
+            // Review summary — đếm và trung bình từ ProductReviews
+            .ForMember(d => d.TotalReviews, o => o.MapFrom(s => s.ProductReviews.Count(r => r.Rating != null)))
+            .ForMember(d => d.AverageRating, o => o.MapFrom(s =>
+                s.ProductReviews.Where(r => r.Rating != null).Any()
+                    ? s.ProductReviews.Where(r => r.Rating != null).Average(r => (double)r.Rating!.Value)
+                    : 0d))
+            // Comments count — đếm ProductComments chưa bị xóa
+            .ForMember(d => d.TotalComments, o => o.MapFrom(s => s.ProductComments.Count(c => !c.IsDeleted)));
 
         CreateMap<CreateProductRequestDto, Product>()
             .ForMember(d => d.Id, o => o.Ignore())

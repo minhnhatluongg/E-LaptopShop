@@ -29,6 +29,20 @@ public class ProductDto
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public bool? IsActive { get; set; }
+
+    // --- Specs tóm tắt — hiển thị trên product card ---
+    public string? Cpu { get; set; }
+    public string? Gpu { get; set; }
+    public string? Ram { get; set; }
+    public string? Storage { get; set; }
+    public string? Screen { get; set; }
+    public string? Battery { get; set; }
+    public string? Weight { get; set; }
+
+    // --- Review summary ---
+    public double AverageRating { get; set; }
+    public int TotalReviews { get; set; }
+    public int TotalComments { get; set; }
 }
 public class CreateProductRequestDto
 {

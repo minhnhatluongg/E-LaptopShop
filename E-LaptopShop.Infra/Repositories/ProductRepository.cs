@@ -79,6 +79,8 @@ public class ProductRepository : BaseRepository<Product>, IProductRepository
         return await query
             .Include(p => p.Category)
             .Include(p => p.ProductSpecifications)
+            .Include(p => p.ProductReviews)
+            .Include(p => p.ProductComments)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
     }
@@ -204,6 +206,8 @@ public class ProductRepository : BaseRepository<Product>, IProductRepository
             query = query.Include(p => p.Category)
                          .Include(p => p.ProductImages)
                          .Include(p => p.ProductSpecifications)
+                         .Include(p => p.ProductReviews)
+                         .Include(p => p.ProductComments)
                          .AsSplitQuery()
                          .AsNoTracking();
 

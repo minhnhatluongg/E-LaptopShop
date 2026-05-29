@@ -48,8 +48,12 @@ namespace E_LaptopShop.Infra
             services.AddScoped<IUserWalletRepository, UserWalletRepository>();
             services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
             services.AddScoped<IBannerRepository, BannerRepository>();
+            services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
+            services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
             services.AddScoped<IProductCommentRepository, ProductCommentRepository>();
             services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+            services.AddScoped<E_LaptopShop.Application.Services.Interfaces.ILoyaltyService,
+                                E_LaptopShop.Infra.Services.LoyaltyService>();
 
             return services;
         }

@@ -28,7 +28,7 @@ namespace E_LaptopShop.Infra.Data.Configurations
             builder.HasIndex(c => c.UserId).HasDatabaseName("IX_ProductComments_UserId");
 
             builder.HasOne(c => c.Product)
-                   .WithMany()
+                   .WithMany(p => p.ProductComments)
                    .HasForeignKey(c => c.ProductId)
                    .OnDelete(DeleteBehavior.Cascade);
 
