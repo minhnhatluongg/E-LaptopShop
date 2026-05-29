@@ -1,0 +1,1 @@
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=tcp:be-laptopshop.database.windows.net,1433;Initial Catalog=free-sql-db-9719142;Persist Security Info=False;User ID=admin_laptopshop;Password=23012002Nhattt;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=60;"

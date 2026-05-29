@@ -13,7 +13,12 @@
       "Bash(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(xargs grep -l \"AddApplicationServices\\\\|AddMediatR\\\\|services.Add\")",
-      "Bash(dir \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\")"
+      "Bash(dir \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\")",
+      "Read(//d/project-building-CV/laptop_shop/E-LaptopShop.Domain/Entities/**)",
+      "Bash(xargs grep -l \"new Product\\\\|AddProduct\\\\|SeedProduct\")",
+      "Bash(Get-Content \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\E-LaptopShop.Application\\\\DTOs\\\\UserDto.cs\")",
+      "Bash(Select-Object -Last 5)",
+      "Bash(Get-ChildItem -Path \"d:\\\\project-building-CV\\\\laptop_shop\\\\E-LaptopShop\\\\\" -Directory | Select-Object Name)"
     ],
     "additionalDirectories": [
       "d:\\project-building-CV\\laptop_shop\\fe-LaptopShop\\app\\src"

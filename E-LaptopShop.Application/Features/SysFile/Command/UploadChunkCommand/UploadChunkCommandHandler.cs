@@ -67,8 +67,25 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadChunkCommand
                     Directory.CreateDirectory(targetFolder);
                 // Ghép các chunks
                 var slugifiedFileName = StringHelper.Slugify(request.FileName);
-                var combinedFileName = Guid.NewGuid().ToString() + "_" + slugifiedFileName;
-                var finalFilePath = Path.Combine(targetFolder, combinedFileName);
+                var uniqueId = Guid.NewGuid().ToString("N")[..8]; // 8 chars đủ unique
+                var combinedFileName = $"{uniqueId}_{slugifiedFileName}";
+
+                // Tổ chức subfolder theo context (avatar, product, category, v.v.)
+                // request.UploadContext = "products/{id}" | "avatars" | null
+                var subFolder = string.IsNullOrWhiteSpace(request.UploadContext)
+                    ? targetFolder
+                    : Path.Combine(targetFolder, request.UploadContext);
+
+                if (!Directory.Exists(subFolder))
+                    Directory.CreateDirectory(subFolder);
+
+                var finalFilePath = Path.Combine(subFolder, combinedFileName);
+
+                // fileUrlPrefix đã là "/image", nối context nếu có
+                var contextUrlPart = string.IsNullOrWhiteSpace(request.UploadContext)
+                    ? string.Empty
+                    : $"/{request.UploadContext}";
+                var fileUrl = $"{fileUrlPrefix}{contextUrlPart}/{combinedFileName}";
 
                 await CombineChunksAsync(fileFolder, finalFilePath, request.TotalChunks);
 
@@ -83,7 +100,7 @@ namespace E_LaptopShop.Application.Features.SysFile.Command.UploadChunkCommand
                 {
                     FileName = request.FileName,
                     FilePath = finalFilePath,
-                    FileUrl = $"{fileUrlPrefix}/{slugifiedFileName}",
+                    FileUrl = fileUrl,   // ← có guid, không conflict
                     FileType = Path.GetExtension(request.FileName).TrimStart('.'),
                     FileSize = fileInfo.Length,
                     StorageType = "local",

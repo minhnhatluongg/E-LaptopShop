@@ -13,7 +13,21 @@ public class ProductMappingProfile : Profile
 
     public ProductMappingProfile()
     {
-        CreateMap<Product, ProductDto>();
+        CreateMap<Product, ProductDto>()
+            // Brand
+            .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand != null ? s.Brand.Name : null))
+            .ForMember(d => d.BrandSlug, o => o.MapFrom(s => s.Brand != null ? s.Brand.Slug : null))
+            // Category
+            .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
+            // Ảnh chính — 1 correlated subquery EF Core translate được:
+            // ORDER BY IsMain DESC → ảnh IsMain=true lên đầu, fallback về ảnh DisplayOrder nhỏ nhất.
+            .ForMember(d => d.MainImageUrl, o => o.MapFrom(s =>
+                s.ProductImages
+                    .Where(i => i.IsActive)
+                    .OrderByDescending(i => i.IsMain)
+                    .ThenBy(i => i.DisplayOrder)
+                    .Select(i => i.ImageUrl)
+                    .FirstOrDefault()));
 
         CreateMap<CreateProductRequestDto, Product>()
             .ForMember(d => d.Id, o => o.Ignore())

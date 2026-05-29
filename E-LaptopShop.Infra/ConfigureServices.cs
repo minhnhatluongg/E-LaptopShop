@@ -47,6 +47,9 @@ namespace E_LaptopShop.Infra
             services.AddScoped<ICouponRepository, CouponRepository>();
             services.AddScoped<IUserWalletRepository, UserWalletRepository>();
             services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
+            services.AddScoped<IBannerRepository, BannerRepository>();
+            services.AddScoped<IProductCommentRepository, ProductCommentRepository>();
+            services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 
             return services;
         }

@@ -1,9 +1,12 @@
+using E_LaptopShop.Application.DTOs;
 using E_LaptopShop.Application.DTOs.Auth;
 using E_LaptopShop.Application.Features.Auth.Commands.Login;
 using E_LaptopShop.Application.Features.Auth.Commands.Logout;
 using E_LaptopShop.Application.Features.Auth.Commands.RefreshToken;
 using E_LaptopShop.Application.Features.Auth.Commands.Register;
 using E_LaptopShop.Application.Models;
+using E_LaptopShop.Application.Services.Interfaces;
+using E_LaptopShop.Domain.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,12 +21,26 @@ namespace E_LaptopShop.Controllers
     {
         private readonly IMediator _mediator;
         private readonly ILogger<AuthController> _logger;
+        private readonly IUserRepository _userRepository;
+        private readonly IPasswordHasher _passwordHasher;
+        private readonly ISysFileRepository _sysFileRepository;
 
-        public AuthController(IMediator mediator, ILogger<AuthController> logger)
+        public AuthController(
+            IMediator mediator,
+            ILogger<AuthController> logger,
+            IUserRepository userRepository,
+            IPasswordHasher passwordHasher,
+            ISysFileRepository sysFileRepository)
         {
             _mediator = mediator;
             _logger = logger;
+            _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
+            _sysFileRepository = sysFileRepository;
         }
+
+        private int GetCurrentUserId() =>
+            int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
         /// <summary>
         /// 🔐 User Login - Đăng nhập người dùng
@@ -220,33 +237,198 @@ namespace E_LaptopShop.Controllers
         }
 
         /// <summary>
-        /// 👤 Get Current User Info - Lấy thông tin user hiện tại
+        /// 👤 Get Current User Info - Lấy thông tin user hiện tại (từ JWT claims)
         /// </summary>
-        /// <returns>User information</returns>
         [HttpGet("me")]
         [Authorize]
         [Tags(ApiTags.Customer)]
         [ProducesResponseType(typeof(ApiResponse<UserInfoDto>), 200)]
-        [ProducesResponseType(typeof(ApiResponse<object>), 401)]
         public async Task<ActionResult<ApiResponse<UserInfoDto>>> GetCurrentUser()
         {
             try
             {
                 var userInfo = new UserInfoDto
                 {
-                    Id = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
-                    Email = User.FindFirst(ClaimTypes.Email)?.Value ?? "",
-                    FullName = User.FindFirst(ClaimTypes.Name)?.Value ?? "",
-                    Role = User.FindFirst(ClaimTypes.Role)?.Value ?? "",
-                    EmailConfirmed = bool.Parse(User.FindFirst("email_confirmed")?.Value ?? "false")
+                    Id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0"),
+                    Email = User.FindFirstValue(ClaimTypes.Email) ?? "",
+                    FullName = User.FindFirstValue(ClaimTypes.Name) ?? "",
+                    Role = User.FindFirstValue(ClaimTypes.Role) ?? "",
+                    EmailConfirmed = bool.Parse(User.FindFirstValue("email_confirmed") ?? "false")
                 };
 
-                return Ok(ApiResponse<UserInfoDto>.SuccessResponse(userInfo, "User info retrieved successfully"));
+                // Lấy thêm AvatarUrl từ DB (không có trong JWT)
+                var user = await _userRepository.GetByIdAsync(userInfo.Id);
+                if (user != null)
+                {
+                    userInfo.AvatarUrl = user.AvatarUrl;
+                }
+
+                return Ok(ApiResponse<UserInfoDto>.SuccessResponse(userInfo));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving current user info");
                 return BadRequest(ApiResponse<object>.ErrorResponse("Failed to retrieve user info"));
+            }
+        }
+
+        /// <summary>
+        /// 👤 [CUSTOMER] Lấy full profile của bản thân
+        /// </summary>
+        [HttpGet("me/profile")]
+        [Authorize]
+        [Tags(ApiTags.Customer)]
+        public async Task<ActionResult<ApiResponse<UserDto>>> GetMyProfile()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return NotFound(ApiResponse<UserDto>.ErrorResponse("User not found"));
+
+                var dto = new UserDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    AvatarUrl = user.AvatarUrl,
+                    RoleId = user.RoleId,
+                    Gender = user.Gender,
+                    DateOfBirth = user.DateOfBirth,
+                    IsActive = user.IsActive,
+                    EmailConfirmed = user.EmailConfirmed,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                };
+                return Ok(ApiResponse<UserDto>.SuccessResponse(dto));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting profile for user");
+                return BadRequest(ApiResponse<UserDto>.ErrorResponse("Failed to get profile"));
+            }
+        }
+
+        /// <summary>
+        /// 👤 [CUSTOMER] Cập nhật thông tin cá nhân (firstName, lastName, phone, gender, dateOfBirth)
+        /// </summary>
+        [HttpPut("me/profile")]
+        [Authorize]
+        [Tags(ApiTags.Customer)]
+        public async Task<ActionResult<ApiResponse<UserDto>>> UpdateMyProfile([FromBody] UpdateMyProfileDto dto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return NotFound(ApiResponse<UserDto>.ErrorResponse("User not found"));
+
+                if (!string.IsNullOrWhiteSpace(dto.FirstName)) user.FirstName = dto.FirstName.Trim();
+                if (!string.IsNullOrWhiteSpace(dto.LastName))  user.LastName  = dto.LastName.Trim();
+                if (dto.Phone != null)       user.Phone = dto.Phone.Trim();
+                if (dto.Gender != null)      user.Gender = dto.Gender;
+                if (dto.DateOfBirth != null) user.DateOfBirth = dto.DateOfBirth;
+                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedBy = userId.ToString();
+
+                await _userRepository.UpdateAsync(user);
+
+                var result = new UserDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    AvatarUrl = user.AvatarUrl,
+                    RoleId = user.RoleId,
+                    Gender = user.Gender,
+                    DateOfBirth = user.DateOfBirth,
+                    IsActive = user.IsActive,
+                    EmailConfirmed = user.EmailConfirmed,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                };
+                return Ok(ApiResponse<UserDto>.SuccessResponse(result, "Profile updated successfully"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating profile");
+                return BadRequest(ApiResponse<UserDto>.ErrorResponse("Failed to update profile"));
+            }
+        }
+
+        /// <summary>
+        /// 🔒 [CUSTOMER] Đổi mật khẩu — xác minh mật khẩu hiện tại trước.
+        /// </summary>
+        [HttpPut("me/password")]
+        [Authorize]
+        [Tags(ApiTags.Customer)]
+        public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            try
+            {
+                if (dto.NewPassword != dto.ConfirmNewPassword)
+                    return BadRequest(ApiResponse<object>.ErrorResponse("Mật khẩu mới và xác nhận không khớp"));
+
+                if (dto.NewPassword.Length < 6)
+                    return BadRequest(ApiResponse<object>.ErrorResponse("Mật khẩu mới phải tối thiểu 6 ký tự"));
+
+                var userId = GetCurrentUserId();
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return NotFound(ApiResponse<object>.ErrorResponse("User not found"));
+
+                if (!_passwordHasher.VerifyHashedPassword(user.PasswordHash, dto.CurrentPassword))
+                    return BadRequest(ApiResponse<object>.ErrorResponse("Mật khẩu hiện tại không đúng"));
+
+                user.PasswordHash = _passwordHasher.HashPassword(dto.NewPassword);
+                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedBy = userId.ToString();
+                await _userRepository.UpdateAsync(user);
+
+                return Ok(ApiResponse<object>.SuccessResponse(new { }, "Đổi mật khẩu thành công"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password");
+                return BadRequest(ApiResponse<object>.ErrorResponse("Failed to change password"));
+            }
+        }
+
+        /// <summary>
+        /// 🖼️ [CUSTOMER] Cập nhật avatar — upload file trước qua /api/v1/file/upload-file,
+        /// nhận về SysFileId, rồi gọi endpoint này.
+        /// </summary>
+        [HttpPut("me/avatar")]
+        [Authorize]
+        [Tags(ApiTags.Customer)]
+        public async Task<ActionResult<ApiResponse<object>>> UpdateAvatar([FromBody] UpdateAvatarDto dto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null) return NotFound(ApiResponse<object>.ErrorResponse("User not found"));
+
+                var sysFile = await _sysFileRepository.GetByIdAsync(dto.SysFileId);
+                if (sysFile == null)
+                    return BadRequest(ApiResponse<object>.ErrorResponse("File không tồn tại, upload lại."));
+
+                user.AvatarUrl = sysFile.FileUrl;
+                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedBy = userId.ToString();
+                await _userRepository.UpdateAsync(user);
+
+                return Ok(ApiResponse<object>.SuccessResponse(
+                    new { avatarUrl = sysFile.FileUrl },
+                    "Cập nhật avatar thành công"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating avatar");
+                return BadRequest(ApiResponse<object>.ErrorResponse("Failed to update avatar"));
             }
         }
 
